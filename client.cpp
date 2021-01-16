@@ -6,13 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// Linking with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "Mswsock.lib")
-#pragma comment(lib, "Advapi32.lib")
-
 #define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT "7405"
+#define DEFAULT_PORT "27015"
 
 int __cdecl main(int argc, char **argv)
 {
@@ -30,6 +25,14 @@ int __cdecl main(int argc, char **argv)
     if (argc != 2)
     {
         printf("usage: %s server-name\n", argv[0]);
+        return 1;
+    }
+
+    // Initialize Winsock
+    i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    if (i_result != 0)
+    {
+        printf("WSAStartup failed with error: %d\n", i_result);
         return 1;
     }
 

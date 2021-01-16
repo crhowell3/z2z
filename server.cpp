@@ -8,10 +8,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#pragma comment(lib, "Ws2_32.lib")
-
 #define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT "7405"
+#define DEFAULT_PORT "27015"
 
 int __cdecl main(void)
 {
@@ -93,7 +91,7 @@ int __cdecl main(void)
         return 1;
     }
 
-    closesocket(client_socket);
+    closesocket(listen_socket);
 
     // Receive until the peer shuts down the connection
     do
