@@ -7,33 +7,108 @@
 #include <WS2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <string>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
+struct client_type
+{
+    int id;
+    SOCKET socket;
+};
+
+const char OPTION_VALUE = 1;
+const int MAX_CLIENTS = 10;
+
+int process_client(client_type &new_client, std::vector<client_type> &client_array, std::thread &thread);
+int main(void);
+
+int process_client(client_type &new_client, std::vector<client_type> &client_array, std::thread &thread)
+{
+    std::string msg = "";
+    char tempmsg[DEFAULT_BUFLEN] = "";
+
+    while (1)
+    {
+        memset(tempmsg, 0, DEFAULT_BUFLEN);
+
+        if (new_client.socket != 0)
+        {
+            int i_result = recv(new_client.socket, tempmsg, DEFAULT_BUFLEN, 0);
+
+            if (i_result != SOCKET_ERROR)
+            {
+                if (strcmp("", tempmsg))
+                {
+                    msg = "Client #" + std::to_string(new_client.id) + ": " + tempmsg;
+                }
+
+                std::cout << msg.c_str() << std::endl;
+
+                for (int i = 0; i < MAX_CLIENTS; i++)
+                {
+                    if (client_array[i].socket != INVALID_SOCKET)
+                    {
+                        if (new_client.id != i)
+                        {
+                            i_result = send(client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                msg = "Client #" + std::to_string(new_client.id) + "disconnected";
+
+                std::cout << msg << std::endl;
+
+                closesocket(new_client.socket);
+                closesocket(client_array[new_client.id].socket);
+                client_array[new_client.id].socket = INVALID_SOCKET;
+
+                for (int i = 0; i < MAX_CLIENTS; i++)
+                {
+                    if (client_array[i].socket != INVALID_SOCKET)
+                    {
+                        i_result = send(client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    thread.detach();
+
+    return 0;
+}
+
 int __cdecl main(void)
 {
     WSADATA wsa_data;
-    int i_result;
 
     SOCKET listen_socket = INVALID_SOCKET;
-    SOCKET client_socket = INVALID_SOCKET;
 
     struct addrinfo *result = NULL;
     struct addrinfo hints;
 
-    int i_send_result;
-    char recvbuf[DEFAULT_BUFLEN];
-    int recvbuflen = DEFAULT_BUFLEN;
+    std::string msg = "";
+    std::vector<client_type> client(MAX_CLIENTS);
+    int num_clients = 0;
+    int temp_id = -1;
+
+    std::thread client_thread[MAX_CLIENTS];
 
     // Initialize winsock service
-    i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-    if (i_result != 0)
-    {
-        printf("WSAStartup failed: %d\n", i_result);
-        return 1;
-    }
+    std::cout << "Initializing Winsock..." << std::endl;
+    WSAStartup(MAKEWORD(2, 2), &wsa_data);
 
+    // Setup hints
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -41,103 +116,89 @@ int __cdecl main(void)
     hints.ai_flags = AI_PASSIVE;
 
     // Resolve the server address and port
-    i_result = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
-    if (i_result != 0)
-    {
-        printf("getaddressinfo failed with error: %d\n", i_result);
-        WSACleanup();
-        return 1;
-    }
+    std::cout << "Setting up the server..." << std::endl;
+    getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
 
     // Create a SOCKET for connecting to server
+    std::cout << "Creating the server socket..." << std::endl;
     listen_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (listen_socket == INVALID_SOCKET)
-    {
-        printf("socket failed with error: %d\n", WSAGetLastError());
-        freeaddrinfo(result);
-        WSACleanup();
-        return 1;
-    }
+
+    // Setup socket options
+    setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &OPTION_VALUE, sizeof(int));
+    setsockopt(listen_socket, IPPROTO_TCP, TCP_NODELAY, &OPTION_VALUE, sizeof(int));
 
     // Setup the TCP listening socket
-    i_result = bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
-    if (i_result == SOCKET_ERROR)
+    std::cout << "Binding socket..." << std::endl;
+    bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
+
+    // Listen for incoming connections
+    std::cout << "Listening..." << std::endl;
+    listen(listen_socket, SOMAXCONN);
+
+    // Initialize the client list
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        printf("bind failed with error: %d\n", WSAGetLastError());
-        freeaddrinfo(result);
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
+        client[i] = {-1, INVALID_SOCKET};
     }
 
-    freeaddrinfo(result);
-
-    i_result = listen(listen_socket, SOMAXCONN);
-    if (i_result == SOCKET_ERROR)
+    // Accept client sockets
+    while (1)
     {
-        printf("listen failed with error: %d\n", WSAGetLastError());
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
-    }
+        SOCKET incoming = INVALID_SOCKET;
+        incoming = accept(listen_socket, NULL, NULL);
+        if (incoming == INVALID_SOCKET)
+            continue;
 
-    // Accept a client socket
-    client_socket = accept(listen_socket, NULL, NULL);
-    if (client_socket == INVALID_SOCKET)
-    {
-        printf("accept failed with error: %d\n", WSAGetLastError());
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
-    }
+        // Reset the number of clients
+        num_clients = -1;
 
-    closesocket(listen_socket);
-
-    // Receive until the peer shuts down the connection
-    do
-    {
-        i_result = recv(client_socket, recvbuf, recvbuflen, 0);
-        if (i_result > 0)
+        // Create a temp id for next client
+        temp_id = -1;
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
-            printf("Bytes received: %d\n", i_result);
-
-            // Echo the buffer back to the sender
-            i_send_result = send(client_socket, recvbuf, i_result, 0);
-            if (i_send_result == SOCKET_ERROR)
+            if (client[i].socket == INVALID_SOCKET && temp_id == -1)
             {
-                printf("send failed with error: %d\n", WSAGetLastError());
-                closesocket(client_socket);
-                WSACleanup();
-                return 1;
+                client[i].socket = incoming;
+                client[i].id = i;
+                temp_id = i;
             }
-            printf("Bytes sent: %d\n", i_send_result);
+
+            if (client[i].socket != INVALID_SOCKET)
+                num_clients++;
         }
-        else if (i_result == 0)
+
+        if (temp_id != -1)
         {
-            printf("Connection closing...\n");
+            // Send the id to that client
+            std::cout << "Client #" << client[temp_id].id << " accepted" << std::endl;
+            msg = std::to_string(client[temp_id].id);
+            send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
+
+            // Create a thread process for that client
+            client_thread[temp_id] = std::thread(process_client, std::ref(client[temp_id]), std::ref(client), std::ref(client_thread[temp_id]));
         }
         else
         {
-            printf("recv failed with error: %d\n", WSAGetLastError());
-            closesocket(client_socket);
-            WSACleanup();
-            return 1;
+            msg = "Server is full";
+            send(incoming, msg.c_str(), strlen(msg.c_str()), 0);
+            std::cout << msg << std::endl;
         }
-    } while (i_result > 0);
+    }
 
-    // Shutdown the connection because communication is complete
-    i_result = shutdown(client_socket, SD_SEND);
-    if (i_result == SOCKET_ERROR)
+    // Close the server's listening socket
+    closesocket(listen_socket);
+
+    // Close client sockets
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        printf("Shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(client_socket);
-        WSACleanup();
-        return 1;
+        client_thread[i].detach();
+        closesocket(client[i].socket);
     }
 
     // Cleanup
-    closesocket(client_socket);
     WSACleanup();
+    std::cout << "Server closed successfully" << std::endl;
 
+    system("pause");
     return 0;
 }
