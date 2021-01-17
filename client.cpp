@@ -5,21 +5,62 @@
 #include <WS2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
+#include <string>
+#include <thread>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
+struct client_type
+{
+    SOCKET socket;
+    int id;
+    char received_message[DEFAULT_BUFLEN];
+};
+
+int process_client(client_type &new_client);
+
+int process_client(client_type &new_client)
+{
+    while (1)
+    {
+        memset(new_client.received_message, 0, DEFAULT_BUFLEN);
+
+        if (new_client.socket != 0)
+        {
+            int i_result = recv(new_client.socket, new_client.received_message, DEFAULT_BUFLEN, 0);
+
+            if (i_result != SOCKET_ERROR)
+            {
+                std::cout << new_client.received_message << std::endl;
+            }
+            else
+            {
+                std::cout << "recv() failed: " << WSAGetLastError() << std::endl;
+                break;
+            }
+        }
+    }
+
+    if (WSAGetLastError() == WSAECONNRESET)
+    {
+        std::cout << "The server has disconnected" << std::endl;
+    }
+
+    return 0;
+}
+
 int __cdecl main(int argc, char **argv)
 {
     WSADATA wsa_data;
-    SOCKET connect_socket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
                     hints;
-    const char *sendbuf = "This is a test";
-    char recvbuf[DEFAULT_BUFLEN];
-    int i_result;
-    int recvbuflen = DEFAULT_BUFLEN;
+    std::string sent_message = "";
+    client_type client = {INVALID_SOCKET, -1, ""};
+    int i_result = 0;
+    std::string message;
 
     // Validate the parameters
     if (argc != 2)
@@ -28,11 +69,13 @@ int __cdecl main(int argc, char **argv)
         return 1;
     }
 
+    std::cout << "Starting client...\n";
+
     // Initialize Winsock
     i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (i_result != 0)
     {
-        printf("WSAStartup failed with error: %d\n", i_result);
+        std::cout << "WSAStartup failed with error: " << i_result << std::endl;
         return 1;
     }
 
@@ -41,12 +84,15 @@ int __cdecl main(int argc, char **argv)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
+    std::cout << "Connecting...\n";
+
     // Resolve the server address and port
     i_result = getaddrinfo(argv[1], DEFAULT_PORT, &hints, &result);
     if (i_result != 0)
     {
-        printf("getaddrinfo failed with error: %d\n", i_result);
+        std::cout << "getaddrinfo failed with error: " << i_result << std::endl;
         WSACleanup();
+        system("pause");
         return 1;
     }
 
@@ -54,20 +100,21 @@ int __cdecl main(int argc, char **argv)
     for (ptr = result; ptr != NULL; ptr = ptr->ai_next)
     {
         // Create a SOCKET for connecting to the server
-        connect_socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if (connect_socket == INVALID_SOCKET)
+        client.socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if (client.socket == INVALID_SOCKET)
         {
-            printf("Socket failed with error: %d\n", WSAGetLastError());
+            std::cout << "socket() failed with error: " << WSAGetLastError() << std::endl;
             WSACleanup();
+            system("pause");
             return 1;
         }
 
         // connect to server
-        i_result = connect(connect_socket, ptr->ai_addr, (int)ptr->ai_addrlen);
+        i_result = connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (i_result == SOCKET_ERROR)
         {
-            closesocket(connect_socket);
-            connect_socket = INVALID_SOCKET;
+            closesocket(client.socket);
+            client.socket = INVALID_SOCKET;
             continue;
         }
         break;
@@ -75,56 +122,58 @@ int __cdecl main(int argc, char **argv)
 
     freeaddrinfo(result);
 
-    if (connect_socket == INVALID_SOCKET)
+    if (client.id == INVALID_SOCKET)
     {
-        printf("Unable to connect to server!\n");
+        std::cout << "Unable to connect to server!" << std::endl;
         WSACleanup();
+        system("pause");
         return 1;
     }
 
-    // Send an initial buffer
-    i_result = send(connect_socket, sendbuf, (int)strlen(sendbuf), 0);
+    std::cout << "Connected successfully" << std::endl;
+
+    // Get id from server for this client
+    recv(client.socket, client.received_message, DEFAULT_BUFLEN, 0);
+    message = client.received_message;
+
+    if (message != "Server is full")
+    {
+        client.id = atoi(client.received_message);
+
+        std::thread client_thread(process_client, client);
+
+        while (1)
+        {
+            getline(cin, sent_message);
+            i_result = send(client.socket, sent_message.c_str(), strlen(sent_message.c_str()), 0);
+
+            if (i_result <= 0)
+            {
+                std::cout << "send() failed: " << WSAGetLastError() << std::endl;
+                break;
+            }
+        }
+
+        client_thread.detach();
+    }
+    else
+    {
+        std::cout << client.received_message << endl;
+    }
+
+    std::cout << "Shutting down socket..." << std::endl;
+    i_result = shutdown(client.socket, SD_SEND);
     if (i_result == SOCKET_ERROR)
     {
-        printf("Send failed with error: %d\n", WSAGetLastError());
-        closesocket(connect_socket);
+        std::cout << "shutdown() failed with error: " << WSAGetLastError() << std::endl;
+        closesocket(client.socket);
         WSACleanup();
+        system("pause");
         return 1;
     }
 
-    printf("Bytes Sent: %d\n", i_result);
-
-    // Shutdown the connection because no more data is being sent
-    i_result = shutdown(connect_socket, SD_SEND);
-    if (i_result == SOCKET_ERROR)
-    {
-        printf("Shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(connect_socket);
-        WSACleanup();
-        return 1;
-    }
-
-    // Receive until the peer closes the connection
-    do
-    {
-        i_result = recv(connect_socket, recvbuf, recvbuflen, 0);
-        if (i_result > 0)
-        {
-            printf("Bytes received: %d\n", i_result);
-        }
-        else if (i_result == 0)
-        {
-            printf("Connection closed\n");
-        }
-        else
-        {
-            printf("recv failed with error: %d\n", WSAGetLastError());
-        }
-    } while (i_result > 0);
-
-    // Cleanup
-    closesocket(connect_socket);
+    closesocket(client.socket);
     WSACleanup();
-
+    system("pause");
     return 0;
 }
