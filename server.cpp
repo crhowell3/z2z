@@ -62,7 +62,7 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
             }
             else
             {
-                msg = "Client #" + std::to_string(new_client.id) + "disconnected";
+                msg = "Client #" + std::to_string(new_client.id) + " disconnected";
 
                 std::cout << msg << std::endl;
 

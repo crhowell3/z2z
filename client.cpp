@@ -20,6 +20,7 @@ struct client_type
 };
 
 int process_client(client_type &new_client);
+int main(int argc, char **argv);
 
 int process_client(client_type &new_client)
 {
@@ -122,7 +123,7 @@ int __cdecl main(int argc, char **argv)
 
     freeaddrinfo(result);
 
-    if (client.id == INVALID_SOCKET)
+    if (client.socket == INVALID_SOCKET)
     {
         std::cout << "Unable to connect to server!" << std::endl;
         WSACleanup();
@@ -140,11 +141,11 @@ int __cdecl main(int argc, char **argv)
     {
         client.id = atoi(client.received_message);
 
-        std::thread client_thread(process_client, client);
+        std::thread client_thread(process_client, std::ref(client));
 
         while (1)
         {
-            getline(cin, sent_message);
+            getline(std::cin, sent_message);
             i_result = send(client.socket, sent_message.c_str(), strlen(sent_message.c_str()), 0);
 
             if (i_result <= 0)
@@ -158,7 +159,7 @@ int __cdecl main(int argc, char **argv)
     }
     else
     {
-        std::cout << client.received_message << endl;
+        std::cout << client.received_message << std::endl;
     }
 
     std::cout << "Shutting down socket..." << std::endl;
