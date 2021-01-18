@@ -14,176 +14,353 @@
 #include <signal.h>
 #include <map>
 #include <sstream>
-#include <thread>
 
-#define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT "27015"
+using namespace std;
 
-// (TODO) Convert this code to be compatible with Linux sockets
+#define MSG_SIZE 80
+#define MAX_CLIENTS 95
+#define CENTRAL_SERVER_PORT 7405
+#define SERVER_PORT 7400
+#define CONNECT_PORT 7400
 
-struct client_type
+void exitClient(int fd, fd_set *readfds, char fd_array[], int *num_clients)
 {
-    SOCKET socket;
-    int id;
-    char received_message[DEFAULT_BUFLEN];
+    int i;
+
+    close(fd);
+    FD_CLR(fd, readfds); //clear the leaving client from the set
+    for (i = 0; i < (*num_clients) - 1; i++)
+        if (fd_array[i] == fd)
+            break;
+    for (; i < (*num_clients) - 1; i++)
+        (fd_array[i]) = (fd_array[i + 1]);
+    (*num_clients)--;
+}
+
+struct cell
+{
+    string ip;
+    string name;
 };
 
-int process_client(client_type &new_client);
-int main(int argc, char **argv);
+struct cell info[1000];
 
-int process_client(client_type &new_client)
+void myfunc(string s)
 {
+    int number = s[0] - '0';
+    for (int i = 0; i < number; i++)
+    {
+        info[i].ip = "";
+        info[i].name = "";
+    }
+    cout << "Total Online Users : " << number << endl;
+    int count = 0;
+    int i = 1;
+    int flag = 0;
     while (1)
     {
-        memset(new_client.received_message, 0, DEFAULT_BUFLEN);
-
-        if (new_client.socket != 0)
+        if (s[i] != '\n')
         {
-            int i_result = recv(new_client.socket, new_client.received_message, DEFAULT_BUFLEN, 0);
-
-            if (i_result != SOCKET_ERROR)
+            if (isalpha(s[i]))
             {
-                std::cout << new_client.received_message << std::endl;
+                flag = 1;
+                info[count].name = info[count].name + s[i];
             }
             else
             {
-                std::cout << "recv() failed: " << WSAGetLastError() << std::endl;
-                break;
+                if (flag == 1)
+                {
+                    count++;
+                }
+                flag = 0;
+                info[count].ip = info[count].ip + s[i];
             }
         }
+        i++;
+        if (i == s.length())
+        {
+            break;
+        }
     }
-
-    if (WSAGetLastError() == WSAECONNRESET)
+    for (int i = 0; i < number; i++)
     {
-        std::cout << "The server has disconnected" << std::endl;
+        cout << "id = " << i << "    ip = " << info[i].ip << "    name = " << info[i].name << endl;
     }
-
-    return 0;
 }
 
-int __cdecl main(int argc, char **argv)
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
 {
-    WSADATA wsa_data;
-    struct addrinfo *result = NULL,
-                    *ptr = NULL,
-                    hints;
-    std::string sent_message = "";
-    client_type client = {INVALID_SOCKET, -1, ""};
-    int i_result = 0;
-    std::string message;
-
-    // Validate the parameters
-    if (argc != 2)
+    if (sa->sa_family == AF_INET)
     {
-        printf("usage: %s server-name\n", argv[0]);
-        return 1;
+        return &(((struct sockaddr_in *)sa)->sin_addr);
     }
+    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
+}
 
-    std::cout << "Starting client...\n";
+int main(int argc, char *argv[])
+{
+    int i = 0;
+    string MYNICK;
+    string CENTRAL_SERVER;
 
-    // Initialize Winsock
-    i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-    if (i_result != 0)
+    int port, port1, port2;
+    int num_clients = 1;
+    int server_sockfd, client_sockfd;
+    struct sockaddr_in server_address;
+    int addresslen = sizeof(struct sockaddr_in);
+    int fd;
+    char fd_array[MAX_CLIENTS];
+    string fd_nickarray[MAX_CLIENTS];
+    string fd_IParray[MAX_CLIENTS];
+    fd_set readfds, testfds, clientfds;
+    char msg[MSG_SIZE + 1];
+    char kb_msg[MSG_SIZE + 10];
+
+    struct sockaddr_storage their_addr; //new
+    socklen_t sin_size;                 // new
+    char s[INET6_ADDRSTRLEN];           // new
+
+    /*Client variables=======================*/
+    int sockfd, Friend_sockfd; //new
+    int result;
+    char hostname[MSG_SIZE];
+    struct hostent *hostinfo, *Friend_hostinfo;
+    struct sockaddr_in address, Friend_address;
+    char alias[MSG_SIZE];
+    int clientid;
+
+    /*Client==================================================*/
+    if (argc == 2 || argc == 4)
     {
-        std::cout << "WSAStartup failed with error: " << i_result << std::endl;
-        return 1;
-    }
-
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    std::cout << "Connecting...\n";
-
-    // Resolve the server address and port
-    i_result = getaddrinfo(argv[1], DEFAULT_PORT, &hints, &result);
-    if (i_result != 0)
-    {
-        std::cout << "getaddrinfo failed with error: " << i_result << std::endl;
-        WSACleanup();
-        system("pause");
-        return 1;
-    }
-
-    // Attempt to connect to an address until one succeeds
-    for (ptr = result; ptr != NULL; ptr = ptr->ai_next)
-    {
-        // Create a SOCKET for connecting to the server
-        client.socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if (client.socket == INVALID_SOCKET)
+        if (!strcmp("-p", argv[1]))
         {
-            std::cout << "socket() failed with error: " << WSAGetLastError() << std::endl;
-            WSACleanup();
-            system("pause");
-            return 1;
-        }
-
-        // connect to server
-        i_result = connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
-        if (i_result == SOCKET_ERROR)
-        {
-            closesocket(client.socket);
-            client.socket = INVALID_SOCKET;
-            continue;
-        }
-        break;
-    }
-
-    freeaddrinfo(result);
-
-    if (client.socket == INVALID_SOCKET)
-    {
-        std::cout << "Unable to connect to server!" << std::endl;
-        WSACleanup();
-        system("pause");
-        return 1;
-    }
-
-    std::cout << "Connected successfully" << std::endl;
-
-    // Get id from server for this client
-    recv(client.socket, client.received_message, DEFAULT_BUFLEN, 0);
-    message = client.received_message;
-
-    if (message != "Server is full")
-    {
-        client.id = atoi(client.received_message);
-
-        std::thread client_thread(process_client, std::ref(client));
-
-        while (1)
-        {
-            getline(std::cin, sent_message);
-            i_result = send(client.socket, sent_message.c_str(), strlen(sent_message.c_str()), 0);
-
-            if (i_result <= 0)
+            if (argc == 2)
             {
-                std::cout << "send() failed: " << WSAGetLastError() << std::endl;
-                break;
+                printf("Invalid parameters.\nUsage: chat [-p PORT] HOSTNAME\n");
+                exit(0);
+            }
+            else
+            {
+                sscanf(argv[2], "%i", &port);
+                strcpy(hostname, argv[3]);
+            }
+        }
+        else
+        {
+            port = CENTRAL_SERVER_PORT;
+            strcpy(hostname, argv[1]);
+            CENTRAL_SERVER = string(hostname);
+        }
+        printf("\n*** Client program starting (enter \"quit\" to stop): \n");
+        fflush(stdout);
+
+        /* Create a socket for the client */
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+        /* Name the socket, as agreed with the server */
+        hostinfo = gethostbyname(hostname); /* look for host's name */
+        address.sin_addr = *(struct in_addr *)*hostinfo->h_addr_list;
+        address.sin_family = AF_INET;
+        address.sin_port = htons(port);
+
+        /* Connect the client socket "sockfd" to the server's socket */
+        if (connect(sockfd, (struct sockaddr *)&address, sizeof(address)) < 0)
+        {
+            perror("connecting");
+            exit(1);
+        }
+        else
+        {
+
+            printf("What is your nick ?\n");
+            fgets(kb_msg, MSG_SIZE + 1, stdin);
+            //printf("%s\n",kb_msg);
+            if (strcmp(kb_msg, "quit\n") == 0)
+            {
+                sprintf(msg, "XClient is shutting down.\n");
+                write(sockfd, msg, strlen(msg));
+                close(sockfd); //close the current client
+                exit(0);       //end program
+            }
+            else
+            {
+                sprintf(msg, " NICK:%s", kb_msg);
+                write(sockfd, msg, strlen(msg));
+
+                result = read(sockfd, msg, MSG_SIZE);
+                msg[result] = '\0'; /* Terminate string with null */
+
+                string y(msg);
+                if ((y[0] - '0') != 1)
+                {
+                    myfunc(y);
+                }
             }
         }
 
-        client_thread.detach();
-    }
-    else
-    {
-        std::cout << client.received_message << std::endl;
-    }
+        fflush(stdout);
+        FD_ZERO(&clientfds);        //clear all entries from the set clientfds (client file descriptor set)
+        FD_SET(sockfd, &clientfds); // add sockfd to the clientfds to get input from server
+        FD_SET(0, &clientfds);      //add stdin to the clientfds
 
-    std::cout << "Shutting down socket..." << std::endl;
-    i_result = shutdown(client.socket, SD_SEND);
-    if (i_result == SOCKET_ERROR)
-    {
-        std::cout << "shutdown() failed with error: " << WSAGetLastError() << std::endl;
-        closesocket(client.socket);
-        WSACleanup();
-        system("pause");
-        return 1;
-    }
+    } // end client code
 
-    closesocket(client.socket);
-    WSACleanup();
-    system("pause");
-    return 0;
+    /*Server==================================================*/
+
+    port1 = SERVER_PORT;
+
+    printf("\n*** Server program starting (enter \"quit\" to stop): \n");
+    fflush(stdout);
+
+    /* Create and name a socket for the server */
+    server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(port1);
+    bind(server_sockfd, (struct sockaddr *)&server_address, addresslen);
+
+    /* Create a connection queue and initialize a file descriptor set */
+    listen(server_sockfd, 1);
+    FD_ZERO(&readfds);
+    FD_SET(server_sockfd, &readfds);
+    FD_SET(0, &readfds); /* Add keyboard to file descriptor set */
+
+    /*  Now wait for clients and requests */
+    while (1)
+    {
+        testfds = readfds;
+        select(FD_SETSIZE, &testfds, NULL, NULL, NULL);
+
+        /* If there is activity, find which descriptor it's on using FD_ISSET */
+        for (fd = 0; fd < FD_SETSIZE; fd++)
+        {
+            if (FD_ISSET(fd, &testfds))
+            {
+
+                if (fd == server_sockfd)
+                { /* Accept a new connection request */
+                    sin_size = sizeof their_addr;
+                    client_sockfd = accept(server_sockfd, (struct sockaddr *)&their_addr, &sin_size);
+                    inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
+                    printf("server: got connection from %s\n", s);
+
+                    if (num_clients < MAX_CLIENTS)
+                    {
+                        FD_SET(client_sockfd, &readfds);
+                        fd_array[num_clients] = client_sockfd;
+                        //fd_nickarray[num_clients]=info[y2].name;
+                        fd_IParray[num_clients] = s;
+
+                        /*Client ID*/
+                        printf("Client %d joined\n", num_clients++);
+                        fflush(stdout);
+                    }
+                    else
+                    {
+                        sprintf(msg, "XSorry, too many clients.  Try again later.\n");
+                        write(client_sockfd, msg, strlen(msg));
+                        close(client_sockfd);
+                    }
+                }
+                else if (fd == 0)
+                {
+                    /* Process keyboard activity */
+                    fgets(kb_msg, MSG_SIZE + 1, stdin);
+                    if (strcmp(kb_msg, "quit\n") == 0)
+                    {
+                        sprintf(msg, "XServer is shutting down.\n");
+                        for (i = 0; i < num_clients; i++)
+                        {
+                            write(fd_array[i], msg, strlen(msg));
+                            close(fd_array[i]);
+                        }
+                        close(server_sockfd);
+                        exit(0);
+                    }
+                    else if (strcmp(kb_msg, "connect\n") == 0)
+                    {
+
+                        sprintf(msg, "GETLIST");
+                        write(sockfd, msg, strlen(msg));
+
+                        result = read(sockfd, msg, MSG_SIZE);
+                        msg[result] = '\0'; /* Terminate string with null */
+
+                        string y(msg);
+                        if ((y[0] - '0') != 1)
+                        {
+                            myfunc(y);
+                        }
+
+                        int Online = y[0] - '0';
+                        memset(&msg[0], 0, sizeof(msg));
+
+                        if (Online > 1)
+                        {
+                            cout << "Enter the id you want to connect ?" << endl;
+                            fgets(kb_msg, MSG_SIZE + 1, stdin);
+                            sprintf(msg, "%s", kb_msg);
+                            string y1(msg);
+                            int y2 = y1[0] - '0';
+
+                            char *xxx = &info[y2].ip[0];
+                            Friend_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+                            Friend_hostinfo = gethostbyname(xxx); /* look for host's name */
+                            Friend_address.sin_addr = *(struct in_addr *)*Friend_hostinfo->h_addr_list;
+                            Friend_address.sin_family = AF_INET;
+                            Friend_address.sin_port = htons(port1);
+                            close(sockfd);
+                            connect(Friend_sockfd, (struct sockaddr *)&Friend_address, sizeof(Friend_address));
+                            cout << "Connected to " << y2 << endl;
+
+                            FD_SET(Friend_sockfd, &readfds);
+                            //cout<<"num_clients while connecting is " << num_clients << endl;
+                            fd_array[num_clients] = Friend_sockfd;
+                            fd_nickarray[num_clients] = info[y2].name;
+                            fd_IParray[num_clients++] = info[y2].ip;
+                        }
+                    }
+                    else
+                    {
+                        sprintf(msg, "%s", kb_msg);
+                        for (i = 0; i < num_clients; i++)
+                        {
+                            write(fd_array[i], msg, strlen(msg));
+                        }
+
+                        // write(Friend_sockfd, msg, strlen(msg));
+                    }
+                }
+                else if (fd)
+                { /*Process Client specific activity*/
+                    //read data from open socket
+                    //cout << "fd is " << fd << endl;
+                    memset(&msg[0], 0, sizeof(msg));
+                    memset(&kb_msg[0], 0, sizeof(kb_msg));
+                    result = read(fd, msg, MSG_SIZE);
+
+                    if (result == -1)
+                    {
+                        perror("read()");
+                    }
+                    else if (result > 0)
+                    {
+                        msg[result] = '\0';
+                        cout << "message : " << fd_nickarray[fd - 4] << " : " << msg << endl;
+
+                        /*Exit Client*/
+                        if (msg[0] == 'X')
+                        {
+                            exitClient(fd, &readfds, fd_array, &num_clients);
+                        }
+                    }
+                }
+                else
+                { /* A client is leaving */
+                    exitClient(fd, &readfds, fd_array, &num_clients);
+                }
+            }
+        }
+    }
 }
