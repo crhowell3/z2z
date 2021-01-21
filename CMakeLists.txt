@@ -12,5 +12,5 @@ project( chat_service )
 include_directories ( ./include ./src )
 
 # target
-add_executable( client ./src/client-linux.cpp )
-add_executable( server ./src/server-linux.cpp )
+add_executable( client ./src/client.cpp )
+add_executable( server ./src/server.cpp )
