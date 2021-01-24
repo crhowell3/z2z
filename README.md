@@ -1,4 +1,4 @@
-# P2P-Service Application
+# Homie Chat
 
 ## Running the Server
 
