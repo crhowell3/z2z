@@ -1,16 +1,19 @@
 # version
-cmake_minimum_required( VERSION 3.0 )
+cmake_minimum_required( VERSION 3.8.0 FATAL_ERROR )
 
 # project name
-project( chat_service )
+project(chat_service VERSION 1.0.0 LANGUAGES CXX )
 
 # flags
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# files
+set(CMAKE_AUTOMOC ON)
 
-# include
-include_directories ( ./include ./src )
+# packages
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
-# target
-add_executable( client ./src/client.cpp )
-add_executable( server ./src/server.cpp )
+# add executable
+add_executable(chat_service ./src/main.cpp)
+
+target_link_libraries(chat_service Qt5::Widgets)

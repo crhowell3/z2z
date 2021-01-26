@@ -1,4 +1,5 @@
-#include <QApplication>
+#include <QtWidgets/QApplication>
+#include "ClientWindow.ui"
 
 int main(int argc, char **argv)
 {
