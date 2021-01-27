@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
-#include <thread>
+#include <pthread.h>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
@@ -141,7 +141,8 @@ int __cdecl main(int argc, char **argv)
     {
         client.id = atoi(client.received_message);
 
-        std::thread client_thread(process_client, std::ref(client));
+        // (TODO) Change std::thread to pthread
+        std::thread client_thread(process_client, &client);
 
         while (1)
         {

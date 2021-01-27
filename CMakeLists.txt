@@ -19,6 +19,7 @@ set(IDENTIFIER "com.cameron.Cameron")
 set(SOURCE_FILES
   src/main.cpp
   src/mainwindow.cpp
+  src/client.cpp
   )
 
 add_project_meta(META_FILES_TO_INCLUDE)
@@ -30,6 +31,11 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
+find_package(Threads REQUIRED)
+
 # Add a compiler flag
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,6 +45,7 @@ list(APPEND LIBRARIES
 Qt5::Core
 Qt5::Gui
 Qt5::Widgets
+Threads::Threads
 )
 
 list(REMOVE_DUPLICATES LIBRARIES)
