@@ -1,5 +1,10 @@
-#include "mainwindow.h"
+#include <QtCore>
 #include <QApplication>
+#include <QCommandLineOption>
+#include <QCommandLineParser>
+#include <QDebug>
+
+#include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {

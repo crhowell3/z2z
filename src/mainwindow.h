@@ -1,5 +1,5 @@
-#ifndef MAINWINDOW_H_
-#define MAINWINDOW_H_
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
 
 #include <QMainWindow>
 
@@ -22,4 +22,4 @@ private slots:
 private:
     Ui::MainWindow *ui;
 };
-#endif // SRC_MAINWINDOW_H_
+#endif // MAINWINDOW_H
