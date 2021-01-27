@@ -1,42 +1,36 @@
-# version
-cmake_minimum_required( VERSION 3.5 )
+cmake_minimum_required(VERSION 3.8.2)
 
-# project name
-project(chat_service LANGUAGES CXX )
-
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+# Include the Qt functions in the cmake folder
+include(QtCommon)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+project(chat_service VERSION 1.0.0)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+fix_project_version()
 
-set(PROJECT_SOURCES
-        ./src/main.cpp
-        ./src/mainwindow.cpp
-        ./src/mainwindow.h
-        ./src/mainwindow.ui
+# Set additional project information
+set(COMPANY "Cameron")
+set(COPYRIGHT "Copyright (c) 2021 Cameron Howell. All rights reserved.")
+set(IDENTIFIER "com.cameron.Cameron")
+
+set(SOURCE_FILES
+  src/main.cpp
+  src/mainwindow.cpp
+  )
+
+add_project_meta(META_FILES_TO_INCLUDE)
+
+set(RESOURCE_FILES example.qrc)
+
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
+# Add a compiler flag
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+add_executable(${PROJECT_NAME} ${OS_BUNDLE} # Expands to WIN32 or MACOS_BUNDLE depending on OS
+    ${SOURCE_FILES} ${META_FILES_TO_INCLUDE} ${RESOURCE_FILES}
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(chat_service
-        ${PROJECT_SOURCES}
-    )
-else()
-    if(ANDROID)
-        add_library(chat_service SHARED
-            ${PROJECT_SOURCES}
-        )
-    else()
-        add_executable(chat_service
-            ${PROJECT_SOURCES}
-        )
-    endif()
-endif()
-
-target_link_libraries(chat_service PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
