@@ -12,12 +12,15 @@
 #include <pthread.h>
 #include <string>
 #include "Server.h"
+#include "ui_mainwindow.h"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
 const char OPTION_VALUE = 1;
 const int MAX_CLIENTS = 10;
+
+typedef void* (*THREADFUNCPTR)(void*);
 
 struct client_type
 {
@@ -32,10 +35,13 @@ struct thread_data
     std::vector<client_type> client_array;
 };
 
-Server::Server(){};
+Server::Server(Ui::MainWindow* ui)
+{
+    server_ui_ = ui;
+};
 Server::~Server(){};
 
-void* ProcessServer(void* threadarg)
+void* Server::ProcessServer(void* threadarg)
 {
     pthread_detach(pthread_self());
     struct thread_data* data;
@@ -76,7 +82,7 @@ void* ProcessServer(void* threadarg)
             {
                 msg = "Client #" + std::to_string(data->new_client.id) + " disconnected";
 
-                std::cout << msg << std::endl;
+                server_ui_->serverStatus->append(QString::fromUtf8(msg.c_str()));
 
                 closesocket(data->new_client.socket);
                 closesocket(data->client_array[data->new_client.id].socket);
@@ -118,7 +124,7 @@ void Server::ServerRun()
     struct thread_data td[MAX_CLIENTS];
 
     // Initialize winsock service
-    std::cout << "Initializing Winsock..." << std::endl;
+    server_ui_->serverStatus->append("Initializing Winsock...");
     WSAStartup(MAKEWORD(2, 2), &wsa_data);
 
     // Setup hints
@@ -192,7 +198,7 @@ void Server::ServerRun()
             td[temp_id].client_array = client;
 
             // Create a thread process for that client
-            threads[temp_id] = pthread_create(&threads[temp_id], NULL, &ProcessServer, (void*)&td[temp_id]);
+            int rc = pthread_create(&threads[temp_id], NULL, (THREADFUNCPTR)&Server::ProcessServer, (void*)&td[temp_id]);
         }
         else
         {
@@ -223,6 +229,7 @@ void Server::ServerRun()
 
 int Server::ServerMain()
 {
+    server_ui_->serverStatus->append("Test");
     ServerRun();
     return 0;
 }

@@ -6,10 +6,18 @@
 #include <QMenuBar>
 #include <QMessageBox>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow)
+#include "Client.h"
+#include "Server.h"
+
+MainWindow::MainWindow(QWidget* parent)
+  : QMainWindow(parent)
+  , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    auto server = new Server(ui);
+    connect(ui->serverButton, &QPushButton::clicked, [this, server]() {
+        server->ServerMain();
+    });
 }
 
 MainWindow::~MainWindow()
