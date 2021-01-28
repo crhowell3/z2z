@@ -19,7 +19,8 @@ set(IDENTIFIER "com.cameron.Cameron")
 set(SOURCE_FILES
   src/main.cpp
   src/mainwindow.cpp
-  src/client.cpp
+  src/Client.cpp
+  src/Server.cpp
   )
 
 add_project_meta(META_FILES_TO_INCLUDE)
@@ -54,7 +55,7 @@ add_executable(${PROJECT_NAME} ${OS_BUNDLE} # Expands to WIN32 or MACOS_BUNDLE d
     ${SOURCE_FILES} ${META_FILES_TO_INCLUDE} ${RESOURCE_FILES}
 )
 
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES} ws2_32 mswsock advapi32)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 

@@ -3,14 +3,17 @@
 #include <windows.h>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
-#include <string>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include "Client.h"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
+#define NUM_THREADS 1
+#define IP_ADDR "50.81.219.52"
 
 struct client_type
 {
@@ -19,22 +22,31 @@ struct client_type
     char received_message[DEFAULT_BUFLEN];
 };
 
-int process_client(client_type &new_client);
-int main(int argc, char **argv);
-
-int process_client(client_type &new_client)
+struct thread_data
 {
+    int thread_id;
+    client_type new_client;
+};
+
+Client::Client(){};
+Client::~Client(){};
+
+void* ProcessClient(void* threadarg)
+{
+    pthread_detach(pthread_self());
+    struct thread_data* data;
+    data = (struct thread_data*)threadarg;
     while (1)
     {
-        memset(new_client.received_message, 0, DEFAULT_BUFLEN);
+        memset(data->new_client.received_message, 0, DEFAULT_BUFLEN);
 
-        if (new_client.socket != 0)
+        if (data->new_client.socket != 0)
         {
-            int i_result = recv(new_client.socket, new_client.received_message, DEFAULT_BUFLEN, 0);
+            int i_result = recv(data->new_client.socket, data->new_client.received_message, DEFAULT_BUFLEN, 0);
 
             if (i_result != SOCKET_ERROR)
             {
-                std::cout << new_client.received_message << std::endl;
+                std::cout << data->new_client.received_message << std::endl;
             }
             else
             {
@@ -49,11 +61,17 @@ int process_client(client_type &new_client)
         std::cout << "The server has disconnected" << std::endl;
     }
 
+    pthread_exit(NULL);
     return 0;
 }
 
-int __cdecl main(int argc, char **argv)
+void Client::ClientRun()
 {
+    // Thread arrays
+    pthread_t threads[NUM_THREADS];
+    struct thread_data td[NUM_THREADS];
+    int rc;
+
     WSADATA wsa_data;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
@@ -63,13 +81,6 @@ int __cdecl main(int argc, char **argv)
     int i_result = 0;
     std::string message;
 
-    // Validate the parameters
-    if (argc != 2)
-    {
-        printf("usage: %s server-name\n", argv[0]);
-        return 1;
-    }
-
     std::cout << "Starting client...\n";
 
     // Initialize Winsock
@@ -77,7 +88,7 @@ int __cdecl main(int argc, char **argv)
     if (i_result != 0)
     {
         std::cout << "WSAStartup failed with error: " << i_result << std::endl;
-        return 1;
+        return;
     }
 
     ZeroMemory(&hints, sizeof(hints));
@@ -88,13 +99,13 @@ int __cdecl main(int argc, char **argv)
     std::cout << "Connecting...\n";
 
     // Resolve the server address and port
-    i_result = getaddrinfo(argv[1], DEFAULT_PORT, &hints, &result);
+    i_result = getaddrinfo(IP_ADDR, DEFAULT_PORT, &hints, &result);
     if (i_result != 0)
     {
         std::cout << "getaddrinfo failed with error: " << i_result << std::endl;
         WSACleanup();
         system("pause");
-        return 1;
+        return;
     }
 
     // Attempt to connect to an address until one succeeds
@@ -107,7 +118,7 @@ int __cdecl main(int argc, char **argv)
             std::cout << "socket() failed with error: " << WSAGetLastError() << std::endl;
             WSACleanup();
             system("pause");
-            return 1;
+            return;
         }
 
         // connect to server
@@ -128,7 +139,7 @@ int __cdecl main(int argc, char **argv)
         std::cout << "Unable to connect to server!" << std::endl;
         WSACleanup();
         system("pause");
-        return 1;
+        return;
     }
 
     std::cout << "Connected successfully" << std::endl;
@@ -141,8 +152,16 @@ int __cdecl main(int argc, char **argv)
     {
         client.id = atoi(client.received_message);
 
+        td[0].thread_id = 0;
+        td[0].new_client = client;
+
         // (TODO) Change std::thread to pthread
-        std::thread client_thread(process_client, &client);
+        rc = pthread_create(&threads[0], NULL, &ProcessClient, (void*)&td[0]);
+
+        if (rc != 0)
+        {
+            std::cout << "Thread did not complete successfully" << std::endl;
+        }
 
         while (1)
         {
@@ -155,13 +174,13 @@ int __cdecl main(int argc, char **argv)
                 break;
             }
         }
-
-        client_thread.detach();
     }
     else
     {
         std::cout << client.received_message << std::endl;
     }
+
+    pthread_join(threads[0], NULL);
 
     std::cout << "Shutting down socket..." << std::endl;
     i_result = shutdown(client.socket, SD_SEND);
@@ -171,11 +190,19 @@ int __cdecl main(int argc, char **argv)
         closesocket(client.socket);
         WSACleanup();
         system("pause");
-        return 1;
+        return;
     }
 
     closesocket(client.socket);
     WSACleanup();
     system("pause");
+
+    pthread_exit(NULL);
+}
+
+/// Driver code
+int Client::ClientMain()
+{
+    ClientRun();
     return 0;
 }

@@ -9,11 +9,15 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
-#include <thread>
+#include <pthread.h>
 #include <string>
+#include "Server.h"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
+
+const char OPTION_VALUE = 1;
+const int MAX_CLIENTS = 10;
 
 struct client_type
 {
@@ -21,14 +25,22 @@ struct client_type
     SOCKET socket;
 };
 
-const char OPTION_VALUE = 1;
-const int MAX_CLIENTS = 10;
-
-int process_client(client_type &new_client, std::vector<client_type> &client_array, std::thread &thread);
-int main(void);
-
-int process_client(client_type &new_client, std::vector<client_type> &client_array, std::thread &thread)
+struct thread_data
 {
+    int thread_id;
+    client_type new_client;
+    std::vector<client_type> client_array;
+};
+
+Server::Server(){};
+Server::~Server(){};
+
+void* ProcessServer(void* threadarg)
+{
+    pthread_detach(pthread_self());
+    struct thread_data* data;
+    data = (struct thread_data*)threadarg;
+
     std::string msg = "";
     char tempmsg[DEFAULT_BUFLEN] = "";
 
@@ -36,45 +48,45 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
     {
         memset(tempmsg, 0, DEFAULT_BUFLEN);
 
-        if (new_client.socket != 0)
+        if (data->new_client.socket != 0)
         {
-            int i_result = recv(new_client.socket, tempmsg, DEFAULT_BUFLEN, 0);
+            int i_result = recv(data->new_client.socket, tempmsg, DEFAULT_BUFLEN, 0);
 
             if (i_result != SOCKET_ERROR)
             {
                 if (strcmp("", tempmsg))
                 {
-                    msg = "Client #" + std::to_string(new_client.id) + ": " + tempmsg;
+                    msg = "Client #" + std::to_string(data->new_client.id) + ": " + tempmsg;
                 }
 
                 std::cout << msg.c_str() << std::endl;
 
                 for (int i = 0; i < MAX_CLIENTS; i++)
                 {
-                    if (client_array[i].socket != INVALID_SOCKET)
+                    if (data->client_array[i].socket != INVALID_SOCKET)
                     {
-                        if (new_client.id != i)
+                        if (data->new_client.id != i)
                         {
-                            i_result = send(client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
+                            i_result = send(data->client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
                         }
                     }
                 }
             }
             else
             {
-                msg = "Client #" + std::to_string(new_client.id) + " disconnected";
+                msg = "Client #" + std::to_string(data->new_client.id) + " disconnected";
 
                 std::cout << msg << std::endl;
 
-                closesocket(new_client.socket);
-                closesocket(client_array[new_client.id].socket);
-                client_array[new_client.id].socket = INVALID_SOCKET;
+                closesocket(data->new_client.socket);
+                closesocket(data->client_array[data->new_client.id].socket);
+                data->client_array[data->new_client.id].socket = INVALID_SOCKET;
 
                 for (int i = 0; i < MAX_CLIENTS; i++)
                 {
-                    if (client_array[i].socket != INVALID_SOCKET)
+                    if (data->client_array[i].socket != INVALID_SOCKET)
                     {
-                        i_result = send(client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
+                        i_result = send(data->client_array[i].socket, msg.c_str(), strlen(msg.c_str()), 0);
                     }
                 }
 
@@ -83,18 +95,18 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
         }
     }
 
-    thread.detach();
+    pthread_exit(NULL);
 
     return 0;
 }
 
-int __cdecl main(void)
+void Server::ServerRun()
 {
     WSADATA wsa_data;
 
     SOCKET listen_socket = INVALID_SOCKET;
 
-    struct addrinfo *result = NULL;
+    struct addrinfo* result = NULL;
     struct addrinfo hints;
 
     std::string msg = "";
@@ -102,7 +114,8 @@ int __cdecl main(void)
     int num_clients = 0;
     int temp_id = -1;
 
-    std::thread client_thread[MAX_CLIENTS];
+    pthread_t threads[MAX_CLIENTS];
+    struct thread_data td[MAX_CLIENTS];
 
     // Initialize winsock service
     std::cout << "Initializing Winsock..." << std::endl;
@@ -174,8 +187,12 @@ int __cdecl main(void)
             msg = std::to_string(client[temp_id].id);
             send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
+            td[temp_id].new_client = client[temp_id];
+            td[temp_id].thread_id = client[temp_id].id;
+            td[temp_id].client_array = client;
+
             // Create a thread process for that client
-            client_thread[temp_id] = std::thread(process_client, std::ref(client[temp_id]), std::ref(client), std::ref(client_thread[temp_id]));
+            threads[temp_id] = pthread_create(&threads[temp_id], NULL, &ProcessServer, (void*)&td[temp_id]);
         }
         else
         {
@@ -191,7 +208,7 @@ int __cdecl main(void)
     // Close client sockets
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        client_thread[i].detach();
+        pthread_join(threads[i], NULL);
         closesocket(client[i].socket);
     }
 
@@ -200,5 +217,12 @@ int __cdecl main(void)
     std::cout << "Server closed successfully" << std::endl;
 
     system("pause");
+
+    pthread_exit(NULL);
+}
+
+int Server::ServerMain()
+{
+    ServerRun();
     return 0;
 }
