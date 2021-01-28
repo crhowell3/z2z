@@ -1,0 +1,5 @@
+# P2P-Service has been originally written by Cameron Howell
+# This CODEOWNERS file is only to make sure that @crhowell3 is requested
+# for a code review in case of a pull request
+
+* @crhowell3
