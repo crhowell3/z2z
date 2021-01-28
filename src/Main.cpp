@@ -12,5 +12,6 @@ int main(int argc, char* argv[])
     MainWindow w;
     w.show();
 
+    // TODO: Fix blocking
     return a.exec();
 }

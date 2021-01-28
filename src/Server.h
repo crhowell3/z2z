@@ -3,13 +3,14 @@
 
 #include "mainwindow.h"
 
-class Server
+class Server : public QObject
 {
+    Q_OBJECT
   public:
     //
     // Default constructor and destructor
     //
-    Server(Ui::MainWindow* ui);
+    explicit Server(Ui::MainWindow* ui);
     ~Server();
 
     /**
@@ -24,14 +25,11 @@ class Server
      * 
      */
     void ServerRun();
-    /**
-     * @brief 
-     * 
-     * @return int 
-     */
-    int ServerMain();
 
     Ui::MainWindow* server_ui_;
+
+  public slots:
+    void ServerMain();
 };
 
 #endif  // SERVER_H

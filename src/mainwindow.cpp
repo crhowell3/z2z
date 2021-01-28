@@ -5,6 +5,8 @@
 #include <QScreen>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QtConcurrent/QtConcurrent>
+#include <iostream>
 
 #include "Client.h"
 #include "Server.h"
@@ -15,9 +17,7 @@ MainWindow::MainWindow(QWidget* parent)
 {
     ui->setupUi(this);
     auto server = new Server(ui);
-    connect(ui->serverButton, &QPushButton::clicked, [this, server]() {
-        server->ServerMain();
-    });
+    connect(ui->serverButton, &QPushButton::clicked, server, &Server::ServerMain);
 }
 
 MainWindow::~MainWindow()
