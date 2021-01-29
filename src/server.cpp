@@ -125,6 +125,7 @@ void Server::ServerRun()
 
     // Initialize winsock service
     server_ui_->serverStatus->append("Initializing Winsock...");
+    QApplication::processEvents();
     WSAStartup(MAKEWORD(2, 2), &wsa_data);
 
     // Setup hints
@@ -135,11 +136,13 @@ void Server::ServerRun()
     hints.ai_flags = AI_PASSIVE;
 
     // Resolve the server address and port
-    std::cout << "Setting up the server..." << std::endl;
+    server_ui_->serverStatus->append("Setting up the server...");
+    QApplication::processEvents();
     getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
 
     // Create a SOCKET for connecting to server
-    std::cout << "Creating the server socket..." << std::endl;
+    server_ui_->serverStatus->append("Creating the server socket...");
+    QApplication::processEvents();
     listen_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
     // Setup socket options
@@ -147,11 +150,13 @@ void Server::ServerRun()
     setsockopt(listen_socket, IPPROTO_TCP, TCP_NODELAY, &OPTION_VALUE, sizeof(int));
 
     // Setup the TCP listening socket
-    std::cout << "Binding socket..." << std::endl;
+    server_ui_->serverStatus->append("Binding socket...");
+    QApplication::processEvents();
     bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
 
     // Listen for incoming connections
-    std::cout << "Listening..." << std::endl;
+    server_ui_->serverStatus->append("Listening...");
+    QApplication::processEvents();
     listen(listen_socket, SOMAXCONN);
 
     // Initialize the client list
@@ -163,6 +168,7 @@ void Server::ServerRun()
     // Accept client sockets
     while (1)
     {
+        QApplication::processEvents();
         SOCKET incoming = INVALID_SOCKET;
         incoming = accept(listen_socket, NULL, NULL);
         if (incoming == INVALID_SOCKET)
@@ -175,6 +181,7 @@ void Server::ServerRun()
         temp_id = -1;
         for (int i = 0; i < MAX_CLIENTS; i++)
         {
+            QApplication::processEvents();
             if (client[i].socket == INVALID_SOCKET && temp_id == -1)
             {
                 client[i].socket = incoming;
@@ -189,7 +196,9 @@ void Server::ServerRun()
         if (temp_id != -1)
         {
             // Send the id to that client
-            std::cout << "Client #" << client[temp_id].id << " accepted" << std::endl;
+            std::string client_msg = "Client # " + std::to_string(client[temp_id].id) + " accepted";
+            server_ui_->serverStatus->append(QString::fromUtf8(client_msg.c_str()));
+            QApplication::processEvents();
             msg = std::to_string(client[temp_id].id);
             send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
@@ -204,7 +213,8 @@ void Server::ServerRun()
         {
             msg = "Server is full";
             send(incoming, msg.c_str(), strlen(msg.c_str()), 0);
-            std::cout << msg << std::endl;
+            server_ui_->serverStatus->append(QString::fromUtf8(msg.c_str()));
+            QApplication::processEvents();
         }
     }
 
@@ -220,15 +230,13 @@ void Server::ServerRun()
 
     // Cleanup
     WSACleanup();
-    std::cout << "Server closed successfully" << std::endl;
-
-    system("pause");
+    server_ui_->serverStatus->append("Server closed successfully");
+    QApplication::processEvents();
 
     pthread_exit(NULL);
 }
 
 void Server::ServerMain()
 {
-    server_ui_->serverStatus->append("Test");
     ServerRun();
 }

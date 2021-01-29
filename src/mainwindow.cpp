@@ -5,8 +5,8 @@
 #include <QScreen>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QtConcurrent/QtConcurrent>
 #include <iostream>
+#include <QThread>
 
 #include "Client.h"
 #include "Server.h"
@@ -17,7 +17,16 @@ MainWindow::MainWindow(QWidget* parent)
 {
     ui->setupUi(this);
     auto server = new Server(ui);
-    connect(ui->serverButton, &QPushButton::clicked, server, &Server::ServerMain);
+    connect(ui->serverButton, &QPushButton::clicked, [server]() {
+        auto thread = new QThread;
+        server->moveToThread(thread);
+        thread->start();
+        if (thread->isRunning())
+        {
+            server->ServerMain();
+            thread->quit();
+        }
+    });
 }
 
 MainWindow::~MainWindow()
