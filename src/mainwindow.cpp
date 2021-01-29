@@ -9,15 +9,14 @@
 #include <QThread>
 
 #include "Client.h"
-#include "Server.h"
+#include "ServerThread.h"
 
 MainWindow::MainWindow(QWidget* parent)
-  : QMainWindow(parent)
-  , ui(new Ui::MainWindow)
+  : QWidget(parent)
 {
-    ui->setupUi(this);
-    auto server = new Server(ui);
-    connect(ui->serverButton, &QPushButton::clicked, [server]() {
+    Ui::MainWindow ui;
+    auto server = new ServerThread();
+    connect(ui.serverButton, &QPushButton::clicked, [server]() {
         auto thread = new QThread;
         server->moveToThread(thread);
         thread->start();
@@ -27,14 +26,4 @@ MainWindow::MainWindow(QWidget* parent)
             thread->quit();
         }
     });
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
-
-void MainWindow::on_actionExit_triggered()
-{
-    this->close();
 }

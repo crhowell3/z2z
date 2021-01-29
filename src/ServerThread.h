@@ -1,17 +1,20 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include <QThread>
+#include <QMutex>
+#include <QWaitCondition>
 #include "mainwindow.h"
 
-class Server : public QObject
+class ServerThread : public QThread
 {
     Q_OBJECT
   public:
     //
     // Default constructor and destructor
     //
-    explicit Server(Ui::MainWindow* ui);
-    ~Server();
+    ServerThread(QObject* parent = nullptr);
+    ~ServerThread();
 
     /**
      * @brief 
@@ -26,10 +29,16 @@ class Server : public QObject
      */
     void ServerRun();
 
-    Ui::MainWindow* server_ui_;
-
   public slots:
     void ServerMain();
+
+  protected:
+    void run() override;
+
+  private:
+    QMutex mutex;
+    QWaitCondition condition;
+    bool abort = false;
 };
 
 #endif  // SERVER_H

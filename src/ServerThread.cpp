@@ -11,7 +11,7 @@
 #include <vector>
 #include <pthread.h>
 #include <string>
-#include "Server.h"
+#include "ServerThread.h"
 #include "ui_mainwindow.h"
 
 #define DEFAULT_BUFLEN 512
@@ -35,13 +35,18 @@ struct thread_data
     std::vector<client_type> client_array;
 };
 
-Server::Server(Ui::MainWindow* ui)
+ServerThread::ServerThread(QObject* parent)
+  : QThread(parent){};
+ServerThread::~ServerThread()
 {
-    server_ui_ = ui;
-};
-Server::~Server(){};
+    mutex.lock();
+    abort = true;
+    mutex.unlock();
 
-void* Server::ProcessServer(void* threadarg)
+    wait();
+};
+
+void* ServerThread::ProcessServer(void* threadarg)
 {
     pthread_detach(pthread_self());
     struct thread_data* data;
@@ -82,7 +87,7 @@ void* Server::ProcessServer(void* threadarg)
             {
                 msg = "Client #" + std::to_string(data->new_client.id) + " disconnected";
 
-                server_ui_->serverStatus->append(QString::fromUtf8(msg.c_str()));
+                ui->serverStatus->append(QString::fromUtf8(msg.c_str()));
 
                 closesocket(data->new_client.socket);
                 closesocket(data->client_array[data->new_client.id].socket);
@@ -106,7 +111,7 @@ void* Server::ProcessServer(void* threadarg)
     return 0;
 }
 
-void Server::ServerRun()
+void ServerThread::run()
 {
     WSADATA wsa_data;
 
@@ -168,7 +173,6 @@ void Server::ServerRun()
     // Accept client sockets
     while (1)
     {
-        QApplication::processEvents();
         SOCKET incoming = INVALID_SOCKET;
         incoming = accept(listen_socket, NULL, NULL);
         if (incoming == INVALID_SOCKET)
@@ -176,12 +180,10 @@ void Server::ServerRun()
 
         // Reset the number of clients
         num_clients = -1;
-
         // Create a temp id for next client
         temp_id = -1;
         for (int i = 0; i < MAX_CLIENTS; i++)
         {
-            QApplication::processEvents();
             if (client[i].socket == INVALID_SOCKET && temp_id == -1)
             {
                 client[i].socket = incoming;
@@ -207,7 +209,7 @@ void Server::ServerRun()
             td[temp_id].client_array = client;
 
             // Create a thread process for that client
-            int rc = pthread_create(&threads[temp_id], NULL, (THREADFUNCPTR)&Server::ProcessServer, (void*)&td[temp_id]);
+            int rc = pthread_create(&threads[temp_id], NULL, (THREADFUNCPTR)&ServerThread::ProcessServer, (void*)&td[temp_id]);
         }
         else
         {
@@ -234,9 +236,4 @@ void Server::ServerRun()
     QApplication::processEvents();
 
     pthread_exit(NULL);
-}
-
-void Server::ServerMain()
-{
-    ServerRun();
 }
