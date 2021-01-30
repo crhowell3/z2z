@@ -18,9 +18,8 @@ set(IDENTIFIER "com.cameron.Cameron")
 
 set(SOURCE_FILES
   src/main.cpp
-  src/mainwindow.cpp
   src/Client.cpp
-  src/Server.cpp
+  src/ServerThread.cpp
   )
 
 add_project_meta(META_FILES_TO_INCLUDE)

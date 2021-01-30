@@ -4,7 +4,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
-#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 class ServerThread : public QThread
 {
@@ -23,11 +23,13 @@ class ServerThread : public QThread
      * @return void* 
      */
     void* ProcessServer(void* threadarg);
-    /**
-     * @brief 
-     * 
-     */
-    void ServerRun();
+
+    //
+    // Member variables
+    //
+
+    /// Pointer to the main window user interface
+    Ui::MainWindow* ui;
 
   public slots:
     void ServerMain();
