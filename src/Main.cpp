@@ -12,25 +12,29 @@
 #include "ServerThread.h"
 #include "ui_mainwindow.h"
 
+Ui::MainWindow ui;
+
+void updateUi(const QString& message)
+{
+    ui.serverStatus->append(message);
+}
+
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
     QWidget* widget = new QWidget;
-    Ui::MainWindow ui;
     ui.setupUi(widget);
 
-    auto server = new ServerThread();
-    QObject::connect(ui.serverButton, &QPushButton::clicked, [server]() {
+    ServerThread server;
+    QObject::connect(&server, &ServerThread::serverUpdated, updateUi);
+    QObject::connect(ui.serverButton, &QPushButton::clicked, [&server]() {
         auto thread = new QThread;
-        server->moveToThread(thread);
+        server.moveToThread(thread);
         thread->start();
         if (thread->isRunning())
         {
-            server->ServerMain();
-            if (thread->isFinished())
-            {
-                thread->exit();
-            }
+            server.ServerMain();
+            thread->exit();
         }
     });
 

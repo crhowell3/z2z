@@ -28,11 +28,11 @@ class ServerThread : public QThread
     // Member variables
     //
 
-    /// Pointer to the main window user interface
-    Ui::MainWindow* ui;
-
   public slots:
     void ServerMain();
+
+  signals:
+    void serverUpdated(const QString& message);
 
   protected:
     void run() override;

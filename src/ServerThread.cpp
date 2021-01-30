@@ -87,7 +87,7 @@ void* ServerThread::ProcessServer(void* threadarg)
             {
                 msg = "Client #" + std::to_string(data->new_client.id) + " disconnected";
 
-                ui->serverStatus->append(QString::fromUtf8(msg.c_str()));
+                emit serverUpdated(QString::fromUtf8(msg.c_str()));
 
                 closesocket(data->new_client.socket);
                 closesocket(data->client_array[data->new_client.id].socket);
@@ -129,7 +129,7 @@ void ServerThread::run()
     struct thread_data td[MAX_CLIENTS];
 
     // Initialize winsock service
-    ui->serverStatus->append("Initializing Winsock...");
+    emit serverUpdated("Initializing Winsock...");
     QApplication::processEvents();
     WSAStartup(MAKEWORD(2, 2), &wsa_data);
 
@@ -141,12 +141,12 @@ void ServerThread::run()
     hints.ai_flags = AI_PASSIVE;
 
     // Resolve the server address and port
-    ui->serverStatus->append("Setting up the server...");
+    emit serverUpdated("Setting up the server...");
     QApplication::processEvents();
     getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
 
     // Create a SOCKET for connecting to server
-    ui->serverStatus->append("Creating the server socket...");
+    emit serverUpdated("Creating the server socket...");
     QApplication::processEvents();
     listen_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
@@ -155,12 +155,12 @@ void ServerThread::run()
     setsockopt(listen_socket, IPPROTO_TCP, TCP_NODELAY, &OPTION_VALUE, sizeof(int));
 
     // Setup the TCP listening socket
-    ui->serverStatus->append("Binding socket...");
+    emit serverUpdated("Binding socket...");
     QApplication::processEvents();
     bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
 
     // Listen for incoming connections
-    ui->serverStatus->append("Listening...");
+    emit serverUpdated("Listening...");
     QApplication::processEvents();
     listen(listen_socket, SOMAXCONN);
 
@@ -199,7 +199,7 @@ void ServerThread::run()
         {
             // Send the id to that client
             std::string client_msg = "Client # " + std::to_string(client[temp_id].id) + " accepted";
-            ui->serverStatus->append(QString::fromUtf8(client_msg.c_str()));
+            emit serverUpdated(QString::fromUtf8(client_msg.c_str()));
             QApplication::processEvents();
             msg = std::to_string(client[temp_id].id);
             send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
@@ -212,14 +212,14 @@ void ServerThread::run()
             int rc = pthread_create(&threads[temp_id], NULL, (THREADFUNCPTR)&ServerThread::ProcessServer, (void*)&td[temp_id]);
             if (!rc)
             {
-                ui->serverStatus->append("Unsuccessful thread creation");
+                emit serverUpdated("Unsuccessful thread creation");
             }
         }
         else
         {
             msg = "Server is full";
             send(incoming, msg.c_str(), strlen(msg.c_str()), 0);
-            ui->serverStatus->append(QString::fromUtf8(msg.c_str()));
+            emit serverUpdated(QString::fromUtf8(msg.c_str()));
             QApplication::processEvents();
         }
     }
@@ -236,7 +236,7 @@ void ServerThread::run()
 
     // Cleanup
     WSACleanup();
-    ui->serverStatus->append("Server closed successfully");
+    emit serverUpdated("Server closed successfully");
     QApplication::processEvents();
 
     pthread_exit(NULL);
