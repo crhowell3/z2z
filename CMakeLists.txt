@@ -18,7 +18,7 @@ set(IDENTIFIER "com.cameron.Cameron")
 
 set(SOURCE_FILES
   src/main.cpp
-  src/Client.cpp
+  src/ClientThread.cpp
   src/ServerThread.cpp
   )
 

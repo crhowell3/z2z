@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef SERVERTHREAD_H
+#define SERVERTHREAD_H
 
 #include <QThread>
 #include <QMutex>
@@ -24,14 +24,11 @@ class ServerThread : public QThread
      */
     void* ProcessServer(void* threadarg);
 
-    //
-    // Member variables
-    //
-
   public slots:
-    void ServerMain();
+    void serverMain();
 
   signals:
+    void finished();
     void serverUpdated(const QString& message);
 
   protected:
@@ -43,4 +40,4 @@ class ServerThread : public QThread
     bool abort = false;
 };
 
-#endif  // SERVER_H
+#endif  // SERVERTHREAD_H

@@ -8,12 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include "Client.h"
+#include "ClientThread.h"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 #define NUM_THREADS 1
 #define IP_ADDR "50.81.219.52"
+
+typedef void* (*THREADFUNCPTR)(void*);
 
 struct client_type
 {
@@ -28,10 +30,11 @@ struct thread_data
     client_type new_client;
 };
 
-Client::Client(){};
-Client::~Client(){};
+ClientThread::ClientThread(QObject* parent)
+  : QThread(parent){};
+ClientThread::~ClientThread(){};
 
-void* ProcessClient(void* threadarg)
+void* ClientThread::ProcessClient(void* threadarg)
 {
     pthread_detach(pthread_self());
     struct thread_data* data;
@@ -65,7 +68,7 @@ void* ProcessClient(void* threadarg)
     return 0;
 }
 
-void Client::ClientRun()
+void ClientThread::run()
 {
     // Thread arrays
     pthread_t threads[NUM_THREADS];
@@ -81,13 +84,15 @@ void Client::ClientRun()
     int i_result = 0;
     std::string message;
 
-    std::cout << "Starting client...\n";
+    emit clientUpdated("Starting client...");
+    QApplication::processEvents();
 
     // Initialize Winsock
     i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (i_result != 0)
     {
-        std::cout << "WSAStartup failed with error: " << i_result << std::endl;
+        std::string msg = "WSAStartup failed with error: " + i_result;
+        emit clientUpdated(QString::fromUtf8(msg.c_str()));
         return;
     }
 
@@ -96,7 +101,8 @@ void Client::ClientRun()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    std::cout << "Connecting...\n";
+    emit clientUpdated("Connecting...");
+    QApplication::processEvents();
 
     // Resolve the server address and port
     i_result = getaddrinfo(IP_ADDR, DEFAULT_PORT, &hints, &result);
@@ -122,7 +128,7 @@ void Client::ClientRun()
         }
 
         // connect to server
-        i_result = connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
+        i_result = ::connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (i_result == SOCKET_ERROR)
         {
             closesocket(client.socket);
@@ -142,7 +148,8 @@ void Client::ClientRun()
         return;
     }
 
-    std::cout << "Connected successfully" << std::endl;
+    emit clientUpdated("Connected successfully");
+    QApplication::processEvents();
 
     // Get id from server for this client
     recv(client.socket, client.received_message, DEFAULT_BUFLEN, 0);
@@ -156,7 +163,7 @@ void Client::ClientRun()
         td[0].new_client = client;
 
         // (TODO) Change std::thread to pthread
-        rc = pthread_create(&threads[0], NULL, &ProcessClient, (void*)&td[0]);
+        rc = pthread_create(&threads[0], NULL, (THREADFUNCPTR)&ClientThread::ProcessClient, (void*)&td[0]);
 
         if (rc != 0)
         {
@@ -182,7 +189,7 @@ void Client::ClientRun()
 
     pthread_join(threads[0], NULL);
 
-    std::cout << "Shutting down socket..." << std::endl;
+    emit clientUpdated("Shutting down socket...");
     i_result = shutdown(client.socket, SD_SEND);
     if (i_result == SOCKET_ERROR)
     {
@@ -195,14 +202,12 @@ void Client::ClientRun()
 
     closesocket(client.socket);
     WSACleanup();
-    system("pause");
 
     pthread_exit(NULL);
 }
 
-/// Driver code
-int Client::ClientMain()
+void ClientThread::clientMain()
 {
-    ClientRun();
-    return 0;
+    run();
+    emit finished();
 }

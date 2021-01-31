@@ -70,7 +70,7 @@ void* ServerThread::ProcessServer(void* threadarg)
                     msg = "Client #" + std::to_string(data->new_client.id) + ": " + tempmsg;
                 }
 
-                std::cout << msg.c_str() << std::endl;
+                emit serverUpdated(QString::fromUtf8(msg.c_str()));
 
                 for (int i = 0; i < MAX_CLIENTS; i++)
                 {
@@ -242,7 +242,8 @@ void ServerThread::run()
     pthread_exit(NULL);
 }
 
-void ServerThread::ServerMain()
+void ServerThread::serverMain()
 {
     run();
+    emit finished();
 }

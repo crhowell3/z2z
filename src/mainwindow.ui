@@ -13,22 +13,53 @@
         <property name="windowTitle">
             <string>MainWindow</string>
         </property>
-        <widget class="QWidget" name="centralwidget">
+        <widget class="QWidget" name="centralwidget" native="true">
+            <property name="geometry">
+                <rect>
+                    <x>0</x>
+                    <y>10</y>
+                    <width>801</width>
+                    <height>581</height>
+                </rect>
+            </property>
             <widget class="QTextBrowser" name="serverStatus">
                 <property name="geometry">
                     <rect>
-                        <x>395</x>
-                        <y>10</y>
+                        <x>410</x>
+                        <y>30</y>
                         <width>381</width>
                         <height>501</height>
                     </rect>
                 </property>
             </widget>
+            <widget class="QTextBrowser" name="clientStatus">
+                <property name="geometry">
+                    <rect>
+                        <x>10</x>
+                        <y>30</y>
+                        <width>381</width>
+                        <height>501</height>
+                    </rect>
+                </property>
+            </widget>
+            <widget class="QPushButton" name="clientButton">
+                <property name="geometry">
+                    <rect>
+                        <x>140</x>
+                        <y>540</y>
+                        <width>75</width>
+                        <height>23</height>
+                    </rect>
+                </property>
+                <property name="text">
+                    <string>Open Client</string>
+                </property>
+            </widget>
             <widget class="QPushButton" name="serverButton">
                 <property name="geometry">
                     <rect>
-                        <x>550</x>
-                        <y>520</y>
+                        <x>560</x>
+                        <y>540</y>
                         <width>75</width>
                         <height>23</height>
                     </rect>
@@ -48,7 +79,16 @@
                 </rect>
             </property>
         </widget>
-        <widget class="QStatusBar" name="statusbar"/>
+        <widget class="QStatusBar" name="statusbar">
+            <property name="geometry">
+                <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>3</width>
+                    <height>18</height>
+                </rect>
+            </property>
+        </widget>
     </widget>
     <resources/>
     <connections/>
