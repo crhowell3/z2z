@@ -130,7 +130,6 @@ void ServerThread::run()
 
     // Initialize winsock service
     emit serverUpdated("Initializing Winsock...");
-    QApplication::processEvents();
     WSAStartup(MAKEWORD(2, 2), &wsa_data);
 
     // Setup hints
@@ -142,12 +141,10 @@ void ServerThread::run()
 
     // Resolve the server address and port
     emit serverUpdated("Setting up the server...");
-    QApplication::processEvents();
     getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
 
     // Create a SOCKET for connecting to server
     emit serverUpdated("Creating the server socket...");
-    QApplication::processEvents();
     listen_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 
     // Setup socket options
@@ -156,12 +153,10 @@ void ServerThread::run()
 
     // Setup the TCP listening socket
     emit serverUpdated("Binding socket...");
-    QApplication::processEvents();
     bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
 
     // Listen for incoming connections
     emit serverUpdated("Listening...");
-    QApplication::processEvents();
     listen(listen_socket, SOMAXCONN);
 
     // Initialize the client list
@@ -200,7 +195,6 @@ void ServerThread::run()
             // Send the id to that client
             std::string client_msg = "Client # " + std::to_string(client[temp_id].id) + " accepted";
             emit serverUpdated(QString::fromUtf8(client_msg.c_str()));
-            QApplication::processEvents();
             msg = std::to_string(client[temp_id].id);
             send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
@@ -220,7 +214,6 @@ void ServerThread::run()
             msg = "Server is full";
             send(incoming, msg.c_str(), strlen(msg.c_str()), 0);
             emit serverUpdated(QString::fromUtf8(msg.c_str()));
-            QApplication::processEvents();
         }
     }
 
@@ -237,7 +230,6 @@ void ServerThread::run()
     // Cleanup
     WSACleanup();
     emit serverUpdated("Server closed successfully");
-    QApplication::processEvents();
 
     pthread_exit(NULL);
 }

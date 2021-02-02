@@ -19,6 +19,7 @@ Ui::MainWindow ui;
 void updateUiFromServer(const QString& message)
 {
     ui.serverStatus->append(message);
+    QApplication::processEvents();
 }
 
 void updateUiFromClient(const QString& message)
