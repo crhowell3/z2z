@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
-    <class>MainWindow</class>
-    <widget class="QWidget" name="MainWindow">
+    <class>ClientWindow</class>
+    <widget class="QWidget" name="ClientWindow">
         <property name="geometry">
             <rect>
                 <x>0</x>
@@ -22,50 +22,66 @@
                     <height>581</height>
                 </rect>
             </property>
-            <widget class="QTextBrowser" name="serverStatus">
-                <property name="geometry">
-                    <rect>
-                        <x>410</x>
-                        <y>30</y>
-                        <width>381</width>
-                        <height>501</height>
-                    </rect>
-                </property>
-            </widget>
             <widget class="QTextBrowser" name="clientStatus">
                 <property name="geometry">
                     <rect>
                         <x>10</x>
-                        <y>30</y>
-                        <width>381</width>
-                        <height>501</height>
+                        <y>20</y>
+                        <width>781</width>
+                        <height>481</height>
                     </rect>
                 </property>
+                <property name="contextMenuPolicy">
+                    <enum>Qt::ActionsContextMenu</enum>
+                </property>
             </widget>
-            <widget class="QPushButton" name="clientButton">
+            <widget class="QPushButton" name="clientConnect">
                 <property name="geometry">
                     <rect>
-                        <x>140</x>
+                        <x>300</x>
                         <y>540</y>
                         <width>75</width>
                         <height>23</height>
                     </rect>
                 </property>
                 <property name="text">
-                    <string>Open Client</string>
+                    <string>Connect</string>
                 </property>
             </widget>
-            <widget class="QPushButton" name="serverButton">
+            <widget class="QPushButton" name="clientDisconnect">
                 <property name="geometry">
                     <rect>
-                        <x>560</x>
+                        <x>420</x>
                         <y>540</y>
                         <width>75</width>
                         <height>23</height>
                     </rect>
                 </property>
                 <property name="text">
-                    <string>Open Server</string>
+                    <string>Disconnect</string>
+                </property>
+            </widget>
+            <widget class="QLineEdit" name="chatBox">
+                <property name="geometry">
+                    <rect>
+                        <x>10</x>
+                        <y>510</y>
+                        <width>701</width>
+                        <height>20</height>
+                    </rect>
+                </property>
+            </widget>
+            <widget class="QPushButton" name="clientSend">
+                <property name="geometry">
+                    <rect>
+                        <x>720</x>
+                        <y>510</y>
+                        <width>71</width>
+                        <height>21</height>
+                    </rect>
+                </property>
+                <property name="text">
+                    <string>Send</string>
                 </property>
             </widget>
         </widget>

@@ -4,7 +4,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
-#include "ui_mainwindow.h"
+#include "ui_ServerWindow.h"
 
 class ServerThread : public QThread
 {
@@ -23,6 +23,11 @@ class ServerThread : public QThread
      * @return void* 
      */
     void* ProcessServer(void* threadarg);
+    /**
+     * @brief 
+     * 
+     */
+    void BeginThreadAbortion();
 
   public slots:
     void serverMain();
@@ -37,7 +42,7 @@ class ServerThread : public QThread
   private:
     QMutex mutex;
     QWaitCondition condition;
-    bool abort = false;
+    bool abort_ = false;
 };
 
 #endif  // SERVERTHREAD_H

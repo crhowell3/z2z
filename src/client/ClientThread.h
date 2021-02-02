@@ -3,7 +3,7 @@
 
 #include <QThread>
 #include <QMutex>
-#include "ui_mainwindow.h"
+#include "ui_ClientWindow.h"
 
 class ClientThread : public QThread
 {
@@ -19,6 +19,11 @@ class ClientThread : public QThread
      * Handles the bulk of the client connection
      */
     void* ProcessClient(void* threadarg);
+    /**
+     * @brief 
+     * 
+     */
+    void BeginThreadAbortion();
 
   public slots:
     void clientMain();
@@ -32,6 +37,7 @@ class ClientThread : public QThread
 
   private:
     QMutex mutex;
+    bool abort_ = false;
 };
 
 #endif  // CLIENTTHREAD_H

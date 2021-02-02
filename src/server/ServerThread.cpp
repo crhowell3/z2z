@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <string>
 #include "ServerThread.h"
-#include "ui_mainwindow.h"
+#include "ui_ServerWindow.h"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
@@ -40,7 +40,7 @@ ServerThread::ServerThread(QObject* parent)
 ServerThread::~ServerThread()
 {
     mutex.lock();
-    abort = true;
+    abort_ = true;
     mutex.unlock();
 
     wait();
@@ -54,9 +54,11 @@ void* ServerThread::ProcessServer(void* threadarg)
 
     std::string msg = "";
     char tempmsg[DEFAULT_BUFLEN] = "";
+    std::cout << "idk" << std::endl;
 
     while (1)
     {
+        std::cout << "Why" << std::endl;
         memset(tempmsg, 0, DEFAULT_BUFLEN);
 
         if (data->new_client.socket != 0)
@@ -70,7 +72,9 @@ void* ServerThread::ProcessServer(void* threadarg)
                     msg = "Client #" + std::to_string(data->new_client.id) + ": " + tempmsg;
                 }
 
+                std::cout << "Got to here" << std::endl;
                 emit serverUpdated(QString::fromUtf8(msg.c_str()));
+                std::cout << "Did not pass here" << std::endl;
 
                 for (int i = 0; i < MAX_CLIENTS; i++)
                 {
@@ -109,6 +113,11 @@ void* ServerThread::ProcessServer(void* threadarg)
     pthread_exit(NULL);
 
     return 0;
+}
+
+void ServerThread::BeginThreadAbortion()
+{
+    abort_ = true;
 }
 
 void ServerThread::run()

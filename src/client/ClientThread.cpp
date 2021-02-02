@@ -32,7 +32,14 @@ struct thread_data
 
 ClientThread::ClientThread(QObject* parent)
   : QThread(parent){};
-ClientThread::~ClientThread(){};
+ClientThread::~ClientThread()
+{
+    mutex.lock();
+    abort_ = true;
+    mutex.unlock();
+
+    wait();
+};
 
 void* ClientThread::ProcessClient(void* threadarg)
 {
@@ -66,6 +73,15 @@ void* ClientThread::ProcessClient(void* threadarg)
 
     pthread_exit(NULL);
     return 0;
+}
+
+void ClientThread::BeginThreadAbortion()
+{
+    mutex.lock();
+    abort_ = true;
+    mutex.unlock();
+
+    wait();
 }
 
 void ClientThread::run()
@@ -117,25 +133,35 @@ void ClientThread::run()
     // Attempt to connect to an address until one succeeds
     for (ptr = result; ptr != NULL; ptr = ptr->ai_next)
     {
-        // Create a SOCKET for connecting to the server
-        client.socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if (client.socket == INVALID_SOCKET)
+        if (!abort_)
         {
-            std::cout << "socket() failed with error: " << WSAGetLastError() << std::endl;
-            WSACleanup();
-            system("pause");
-            return;
-        }
+            // Create a SOCKET for connecting to the server
+            client.socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+            if (client.socket == INVALID_SOCKET)
+            {
+                std::cout << "socket() failed with error: " << WSAGetLastError() << std::endl;
+                WSACleanup();
+                system("pause");
+                return;
+            }
 
-        // connect to server
-        i_result = ::connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
-        if (i_result == SOCKET_ERROR)
+            // connect to server
+            i_result = ::connect(client.socket, ptr->ai_addr, (int)ptr->ai_addrlen);
+            if (i_result == SOCKET_ERROR)
+            {
+                closesocket(client.socket);
+                client.socket = INVALID_SOCKET;
+                continue;
+            }
+            break;
+        }
+        else
         {
             closesocket(client.socket);
-            client.socket = INVALID_SOCKET;
-            continue;
+            WSACleanup();
+            emit finished();
+            return;
         }
-        break;
     }
 
     freeaddrinfo(result);

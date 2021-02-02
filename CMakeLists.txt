@@ -7,22 +7,22 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Include the Qt functions in the cmake folder
 include(QtCommon)
 
-project(chat_service VERSION 1.0.0)
-
-fix_project_version()
-
 # Set additional project information
 set(COMPANY "Cameron")
 set(COPYRIGHT "Copyright (c) 2021 Cameron Howell. All rights reserved.")
 set(IDENTIFIER "com.cameron.Cameron")
 
-set(SOURCE_FILES
-  src/main.cpp
-  src/ClientThread.cpp
-  src/ServerThread.cpp
+set(CLIENT_SOURCE_FILES
+  src/client/ClientGui.cpp
+  src/client/ClientThread.cpp
+  src/client/ClientWindow.ui
   )
 
-add_project_meta(META_FILES_TO_INCLUDE)
+set(SERVER_SOURCE_FILES
+  src/server/ServerGui.cpp
+  src/server/ServerThread.cpp
+  src/server/ServerWindow.ui
+ )
 
 set(RESOURCE_FILES example.qrc)
 
@@ -50,21 +50,38 @@ Threads::Threads
 
 list(REMOVE_DUPLICATES LIBRARIES)
 
-add_executable(${PROJECT_NAME} ${OS_BUNDLE} # Expands to WIN32 or MACOS_BUNDLE depending on OS
-    ${SOURCE_FILES} ${META_FILES_TO_INCLUDE} ${RESOURCE_FILES}
+add_executable(chat_client ${OS_BUNDLE} # Expands to WIN32 or MACOS_BUNDLE depending on OS
+    ${CLIENT_SOURCE_FILES} ${RESOURCE_FILES}
 )
+target_link_libraries(chat_client ${LIBRARIES} ws2_32 mswsock advapi32)
+set_target_properties(chat_client PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES} ws2_32 mswsock advapi32)
+add_executable(chat_server ${OS_BUNDLE} # Expands to WIN32 or MACOS_BUNDLE depending on OS
+    ${SERVER_SOURCE_FILES} ${RESOURCE_FILES}
+)
+target_link_libraries(chat_server ${LIBRARIES} ws2_32 mswsock advapi32)
+set_target_properties(chat_server PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+INSTALL(TARGETS chat_client chat_server RUNTIME DESTINATION bin)
 INCLUDE(InstallRequiredSystemLibraries)
 
 if(WIN32)
   find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND ${WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE:${PROJECT_NAME}>)
+  add_custom_command(TARGET chat_client POST_BUILD
+  COMMAND ${WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE:chat_client>)
+
+  install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Release/
+                  RUNTIME DESTINATION bin
+                  FILES_MATCHING
+                  PATTERN "_CPack*" EXCLUDE
+                  PATTERN "*.dll"
+                  )
+endif()
+
+if(WIN32)
+  find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
+  add_custom_command(TARGET chat_server POST_BUILD
+  COMMAND ${WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE:chat_server>)
 
   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Release/
                   RUNTIME DESTINATION bin
