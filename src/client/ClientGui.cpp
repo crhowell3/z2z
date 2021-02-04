@@ -23,26 +23,26 @@ void updateUi(const QString& message)
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    QWidget* widget = new QWidget;
-    ui.setupUi(widget);
+    std::unique_ptr<QWidget> widget = std::make_unique<QWidget>();
+    ui.setupUi(widget.get());
 
     // Set clientDisconnect to disabled initially
     ui.clientDisconnect->setEnabled(false);
 
     // Setup client thread
-    auto thread = new QThread;
+    std::unique_ptr<QThread> thread = std::make_unique<QThread>();
 
     // Create a client worker object
     ClientThread client;
 
     // Move the client process to the QThread
-    client.moveToThread(thread);
+    client.moveToThread(thread.get());
 
     // Connect signals and slots
-    QObject::connect(thread, &QThread::started, &client, &ClientThread::clientMain);
-    QObject::connect(&client, &ClientThread::finished, thread, &QThread::quit);
+    QObject::connect(thread.get(), &QThread::started, &client, &ClientThread::clientMain);
+    QObject::connect(&client, &ClientThread::finished, thread.get(), &QThread::quit);
     QObject::connect(&client, &ClientThread::finished, &client, &ClientThread::deleteLater);
-    QObject::connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    QObject::connect(thread.get(), &QThread::finished, thread.get(), &QThread::deleteLater);
     QObject::connect(&client, &ClientThread::clientUpdated, updateUi);
     QObject::connect(ui.clientConnect, &QPushButton::clicked, [&thread]() {
         thread->start();

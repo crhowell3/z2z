@@ -23,26 +23,26 @@ void updateUi(const QString& message)
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    QWidget* widget = new QWidget;
-    ui.setupUi(widget);
+    std::unique_ptr<QWidget> widget = std::make_unique<QWidget>();
+    ui.setupUi(widget.get());
 
     // Set serverStop to disable initially
     ui.serverStop->setEnabled(false);
 
     // Setup server thread
-    auto server_thread = new QThread;
+    std::unique_ptr<QThread> server_thread = std::make_unique<QThread>();
 
     // Setup server object
     ServerThread server;
 
     // Move the server process to a QThread
-    server.moveToThread(server_thread);
+    server.moveToThread(server_thread.get());
 
     // Connect signals and slots
-    QObject::connect(server_thread, &QThread::started, &server, &ServerThread::serverMain);
-    QObject::connect(&server, &ServerThread::finished, server_thread, &QThread::quit);
+    QObject::connect(server_thread.get(), &QThread::started, &server, &ServerThread::serverMain);
+    QObject::connect(&server, &ServerThread::finished, server_thread.get(), &QThread::quit);
     QObject::connect(&server, &ServerThread::finished, &server, &ServerThread::deleteLater);
-    QObject::connect(server_thread, &QThread::finished, server_thread, &QThread::deleteLater);
+    QObject::connect(server_thread.get(), &QThread::finished, server_thread.get(), &QThread::deleteLater);
     QObject::connect(&server, &ServerThread::serverUpdated, updateUi);
     QObject::connect(ui.serverStart, &QPushButton::clicked, [&server_thread]() {
         server_thread->start();
