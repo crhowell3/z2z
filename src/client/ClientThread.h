@@ -13,12 +13,12 @@ class ClientThread : public QThread
     // Default constructor and destructor
     //
     ClientThread(QObject* parent = nullptr);
-    ~ClientThread();
+    ~ClientThread() override;
     /**
      * @brief Thread dispatcher and client handler
      * Handles the bulk of the client connection
      */
-    void* ProcessClient(void* threadarg);
+    static void* ProcessClient(void* threadarg);
     /**
      * @brief 
      * 

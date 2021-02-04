@@ -5,6 +5,9 @@ lib/*
 # Bin directory
 bin/*
 
+# Clang-tidy cache directory
+.cache/*
+
 # Mac files
 .DS_Store
 

@@ -5,8 +5,10 @@
 #include <windows.h>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <array>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <vector>
 #include <pthread.h>
@@ -20,7 +22,7 @@
 const char OPTION_VALUE = 1;
 const int MAX_CLIENTS = 10;
 
-typedef void* (*THREADFUNCPTR)(void*);
+using THREADFUNCPTR = void* (*)(void*);
 
 struct client_type
 {
@@ -30,8 +32,8 @@ struct client_type
 
 struct thread_data
 {
-    int thread_id;
-    client_type new_client;
+    int thread_id{};
+    client_type new_client{};
     std::vector<client_type> client_array;
 };
 
@@ -48,28 +50,24 @@ ServerThread::~ServerThread()
 
 void* ServerThread::ProcessServer(void* threadarg)
 {
-    pthread_detach(pthread_self());
-    struct thread_data* data;
-    data = (struct thread_data*)threadarg;
+    auto* data = static_cast<struct thread_data*>(threadarg);
 
-    std::string msg = "";
-    char tempmsg[DEFAULT_BUFLEN] = "";
-    std::cout << "idk" << std::endl;
+    std::string msg;
+    std::array<char, DEFAULT_BUFLEN> tempmsg{};
 
-    while (1)
+    while (true)
     {
-        std::cout << "Why" << std::endl;
-        memset(tempmsg, 0, DEFAULT_BUFLEN);
+        std::memset(static_cast<void*>(tempmsg.data()), 0, DEFAULT_BUFLEN);
 
         if (data->new_client.socket != 0)
         {
-            int i_result = recv(data->new_client.socket, tempmsg, DEFAULT_BUFLEN, 0);
+            int i_result = recv(data->new_client.socket, static_cast<char*>(tempmsg.data()), DEFAULT_BUFLEN, 0);
 
             if (i_result != SOCKET_ERROR)
             {
-                if (strcmp("", tempmsg))
+                if (std::strcmp("", static_cast<char*>(tempmsg.data())))
                 {
-                    msg = "Client #" + std::to_string(data->new_client.id) + ": " + tempmsg;
+                    msg = "Client #" + std::to_string(data->new_client.id) + ": " + static_cast<char*>(tempmsg.data());
                 }
 
                 std::cout << "Got to here" << std::endl;
@@ -111,8 +109,7 @@ void* ServerThread::ProcessServer(void* threadarg)
     }
 
     pthread_exit(NULL);
-
-    return 0;
+    return nullptr;
 }
 
 void ServerThread::BeginThreadAbortion()
@@ -124,12 +121,13 @@ void ServerThread::run()
 {
     WSADATA wsa_data;
 
-    SOCKET listen_socket = INVALID_SOCKET;
+    auto listen_socket = INVALID_SOCKET;
 
-    struct addrinfo* result = NULL;
-    struct addrinfo hints;
+    struct addrinfo* result = nullptr;
+    struct addrinfo hints
+    {};
 
-    std::string msg = "";
+    std::string msg;
     std::vector<client_type> client(MAX_CLIENTS);
     int num_clients = 0;
     int temp_id = -1;
@@ -150,7 +148,7 @@ void ServerThread::run()
 
     // Resolve the server address and port
     emit serverUpdated("Setting up the server...");
-    getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+    getaddrinfo(nullptr, DEFAULT_PORT, &hints, &result);
 
     // Create a SOCKET for connecting to server
     emit serverUpdated("Creating the server socket...");
@@ -162,7 +160,7 @@ void ServerThread::run()
 
     // Setup the TCP listening socket
     emit serverUpdated("Binding socket...");
-    bind(listen_socket, result->ai_addr, (int)result->ai_addrlen);
+    bind(listen_socket, result->ai_addr, static_cast<int>(result->ai_addrlen));
 
     // Listen for incoming connections
     emit serverUpdated("Listening...");
@@ -175,12 +173,14 @@ void ServerThread::run()
     }
 
     // Accept client sockets
-    while (1)
+    while (true)
     {
-        SOCKET incoming = INVALID_SOCKET;
-        incoming = accept(listen_socket, NULL, NULL);
+        auto incoming = INVALID_SOCKET;
+        incoming = accept(listen_socket, nullptr, nullptr);
         if (incoming == INVALID_SOCKET)
+        {
             continue;
+        }
 
         // Reset the number of clients
         num_clients = -1;
@@ -196,7 +196,9 @@ void ServerThread::run()
             }
 
             if (client[i].socket != INVALID_SOCKET)
+            {
                 num_clients++;
+            }
         }
 
         if (temp_id != -1)
@@ -213,10 +215,6 @@ void ServerThread::run()
 
             // Create a thread process for that client
             int rc = pthread_create(&threads[temp_id], NULL, (THREADFUNCPTR)&ServerThread::ProcessServer, (void*)&td[temp_id]);
-            if (!rc)
-            {
-                emit serverUpdated("Unsuccessful thread creation");
-            }
         }
         else
         {

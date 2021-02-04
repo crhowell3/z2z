@@ -14,7 +14,7 @@ class ServerThread : public QThread
     // Default constructor and destructor
     //
     ServerThread(QObject* parent = nullptr);
-    ~ServerThread();
+    ~ServerThread() override;
 
     /**
      * @brief 
