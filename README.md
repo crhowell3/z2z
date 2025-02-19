@@ -33,7 +33,6 @@
       src="https://img.shields.io/github/contributors/crhowell3/z2z?style=for-the-badge&logo=opensourceinitiative&color=689d6a&logoColor=d9e0ee&labelColor=282a36"
     />
   </a>
-  <br/>
   <a href="#">
     <img
       alt="Maintained"
@@ -48,7 +47,7 @@
 
 z2z is a simple p2p server and client written in the Zig programming language.
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > This is a networking application, so it is possible that Windows Defender or
 > other antivirus software may block it from running or communicating over the
 > network.
