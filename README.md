@@ -1,14 +1,71 @@
-# Homie Chat
+<h1 align="center">
+  <img
+    alt=""
+    src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png"
+    height="30"
+    width="0px"
+  />
+   z2z
+  <img
+    alt=""
+    src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png"
+    height="30"
+    width="0px"
+  />
+</h1>
 
-## Running the Server
+<p align="center">
+  <a href="https://github.com/crhowell3/z2z/stargazers">
+    <img
+      alt="Stargazers"
+      src="https://img.shields.io/github/stars/crhowell3/z2z?style=for-the-badge&logo=starship&color=b16286&logoColor=d9e0ee&labelColor=282a36"
+    />
+  </a>
+  <a href="https://github.com/crhowell3/z2z/issues">
+    <img
+      alt="Issues"
+      src="https://img.shields.io/github/issues/crhowell3/z2z?style=for-the-badge&logo=gitbook&color=d79921&logoColor=d9e0ee&labelColor=282a36"
+    />
+  </a>
+  <a href="https://github.com/crhowell3/z2z/contributors">
+    <img
+      alt="Contributors"
+      src="https://img.shields.io/github/contributors/crhowell3/z2z?style=for-the-badge&logo=opensourceinitiative&color=689d6a&logoColor=d9e0ee&labelColor=282a36"
+    />
+  </a>
+  <br/>
+  <a href="#">
+    <img
+      alt="Maintained"
+      src="https://img.shields.io/maintenance/yes/2025?style=for-the-badge&color=98971a&labelColor=282a36"
+    />
+  </a>
+</p>
 
-Compile `server.cpp` using `g++ -o server server.cpp -LC:\Windows\System32 -lws2_32`. Run the executable using `./server` or `./server.exe`. Make sure that your firewall will allow the program to execute. Note: The server **MUST** be started before the client code in order to work properly.
+&nbsp;
 
-## Running the Client
+## 💭 About
 
-Compile `client.cpp` using `g++ -o client client.cpp -LC:\Windows\System32 -lws2_32 -lmswsock -ladvapi32`. Run the executable using `./client <ip-addr>` or `./client.exe <ip-addr>`. If the server is running on the same machine as the client, use `localhost`. Otherwise, specify the IP address of the machine on which the server is running.
+z2z is a simple p2p server and client written in the Zig programming language.
 
-## Contributors
+> ![IMPORTANT]
+> This is a networking application, so it is possible that Windows Defender or
+> other antivirus software may block it from running or communicating over the
+> network.
 
-@crhowell3 - developer
-@burkob66 - tester
+## 🔰 Getting Started
+
+### Running the Server
+
+### Running the Client
+
+<p align="center">
+  Copyright &copy; 2025-present
+  <a href="https://github.com/crhowell3" target="_blank">Cameron Howell</a>
+</p>
+<p align="center">
+  <a href="https://github.com/crhowell3/z2z/blob/main/LICENSE"
+    ><img
+      src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=BSD-2-Clause&logoColor=d9e0ee&colorA=282a36&colorB=b16286"
+  /></a>
+</p>
