@@ -65,6 +65,7 @@ z2z is a simple p2p server and client written in the Zig programming language.
 <p align="center">
   <a href="https://github.com/crhowell3/z2z/blob/main/LICENSE"
     ><img
+      alt="MIT License"
       src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=BSD-2-Clause&logoColor=d9e0ee&colorA=282a36&colorB=b16286"
   /></a>
 </p>

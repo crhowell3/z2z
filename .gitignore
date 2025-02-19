@@ -43,3 +43,6 @@ bin/*
 *.exe
 *.out
 *.app
+
+.zig-cache
+zig-out
