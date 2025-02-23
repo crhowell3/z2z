@@ -23,9 +23,9 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .zap = .{
-            .url = "git+https://github.com/zigzap/zap?ref=v0.9.1#ae5c9278335d8e1133cd6d22707323dda712e120",
-            .hash = "12200223d76ab6cd32f75bc2e31463b0b429bb5b2b6fa4ce8f68dea494ca1ec3398b",
+        .@"zig-aio" = .{
+            .url = "git+https://github.com/Cloudef/zig-aio.git#2e214423533f5db8f7531d9912465185d6173362",
+            .hash = "12200811f51d329885dad775edaa2b918824dcc868e328eca0a9bc56717875a6c844",
         },
     },
     .paths = .{
