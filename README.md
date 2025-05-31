@@ -65,10 +65,9 @@ If you are building from source, at minimum you need the following tools:
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 - [zig 0.14.1](https://https://ziglang.org/)
 
->>> [!IMPORTANT] Operating System Compatibility
-z2z uses POSIX for threading and socket operations. At this time, there is no
-support for any non-POSIX-compliant operating systems, such as Windows.
->>>
+> [!IMPORTANT] Operating System Compatibility
+> z2z uses POSIX for threading and socket operations. At this time, there is no
+> support for any non-POSIX-compliant operating systems, such as Windows.
 
 ### Installation
 
