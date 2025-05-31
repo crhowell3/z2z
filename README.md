@@ -45,18 +45,70 @@
 
 ## 💭 About
 
-z2z is a simple p2p server and client written in the Zig programming language.
+z2z is a simple peer-to-peer (p2p) networking protocol written in zig.
 
 > [!IMPORTANT]
 > This is a networking application, so it is possible that Windows Defender or
 > other antivirus software may block it from running or communicating over the
 > network.
 
+### Features
+
+
+
 ## 🔰 Getting Started
 
-### Running the Server
+### Prerequisites
 
-### Running the Client
+If you are building from source, at minimum you need the following tools:
+
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [zig 0.14.1](https://https://ziglang.org/)
+
+>>> [!IMPORTANT] Operating System Compatibility
+z2z uses POSIX for threading and socket operations. At this time, there is no
+support for any non-POSIX-compliant operating systems, such as Windows.
+>>>
+
+### Installation
+
+If you have zig installed, you can manually build and install z2z from the
+command line:
+
+```shell
+# Clone the repository using git
+git clone https://github.com/crhowell3/z2z.git
+cd z2z
+
+# Build using zig
+zig build
+````
+
+### Running
+
+z2z is built upon the concept of communication nodes. To demonstrate basic functionality,
+you need to spin up at least two network nodes.
+
+1. Create a noninteractive network node:
+  ```shell
+  zig build z2z -- -l 1111
+  ```
+
+2. Create an interactive node and connect it to the first node:
+  ```shell
+  zig build z2z -- -i -l 2222 127.0.0.1:1111
+  ```
+
+### Interactive TTY Mode
+
+When a node is started with interactive TTY mode enabled, the user can run commands
+from the terminal. To view the list of supported commands, run `help` on a node that
+was executed with the `-i` flag.
+
+### Termination
+
+To terminate a node, either run `exit` (if it is a node with interactive TTY enabled),
+or simply press `CTRL+C` in the terminal.
 
 <p align="center">
   Copyright &copy; 2025-present
