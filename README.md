@@ -52,10 +52,6 @@ z2z is a simple peer-to-peer (p2p) networking protocol written in zig.
 > other antivirus software may block it from running or communicating over the
 > network.
 
-### Features
-
-
-
 ## 🔰 Getting Started
 
 ### Prerequisites
