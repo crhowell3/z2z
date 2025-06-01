@@ -134,6 +134,15 @@ fn openTTY(node: *Node, allocator: std.mem.Allocator) !void {
 
         if (std.mem.eql(u8, "id", command)) {
             std.debug.print("{}\n", .{node.id});
+        } else if (std.mem.eql(u8, "help", command)) {
+            std.debug.print("Commands\n", .{});
+            std.debug.print("\thelp        Shows this menu\n", .{});
+            std.debug.print("\tid          Prints the ID of the current node\n", .{});
+            std.debug.print("\techo        Echoes a message to the terminal\n", .{});
+            std.debug.print("\troute       Routes a packet to the specified node\n", .{});
+            std.debug.print("\tpeers       Lists all nodes that the current node is connected to\n", .{});
+            std.debug.print("\tbroadcast   Sends a message to all connected nodes\n", .{});
+            std.debug.print("\texit        Terminate the current node and exit program\n", .{});
         } else if (std.mem.startsWith(u8, command, "echo ")) {
             const message = command["echo ".len..];
             std.debug.print("{s}\n", .{message});
@@ -226,6 +235,9 @@ fn openTTY(node: *Node, allocator: std.mem.Allocator) !void {
             const c: *Client = undefined;
 
             try node.handleNodePacket(allocator, c, try frame.toOwnedSlice());
+        } else if (std.mem.eql(u8, "exit", command)) {
+            log.info("Terminating node...", .{});
+            std.process.exit(0);
         }
     }
 }
